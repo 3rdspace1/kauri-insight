@@ -1,0 +1,59 @@
+name: Health
+description: Patient satisfaction and appointment follow-up surveys
+industry: healthcare
+questions:
+  - text: How would you rate your overall experience with your appointment?
+    kind: scale
+    scaleMin: 1
+    scaleMax: 5
+    rules:
+      - trigger:
+          type: range
+          min: 1
+          max: 2
+        probe: We're sorry to hear that. What went wrong during your visit?
+        action: alert_poor_experience
+
+  - text: How satisfied were you with the care provided by our staff?
+    kind: scale
+    scaleMin: 1
+    scaleMax: 5
+    rules:
+      - trigger:
+          type: range
+          min: 1
+          max: 3
+        probe: Can you tell us more about your interaction with our staff?
+        action: review_staff_interaction
+
+  - text: How long did you wait before being seen?
+    kind: choice
+    choices:
+      - Less than 15 minutes
+      - 15-30 minutes
+      - 30-60 minutes
+      - More than 1 hour
+
+  - text: Did the healthcare provider clearly explain your diagnosis and treatment?
+    kind: choice
+    choices:
+      - Yes, very clearly
+      - Somewhat clearly
+      - Not very clearly
+      - Not at all
+
+  - text: Is there anything else you'd like us to know?
+    kind: text
+
+actions:
+  - kind: alert
+    title: Urgent follow-up required
+    triggerCondition: experience_score < 3
+
+  - kind: follow_up
+    title: Contact patient regarding staff interaction
+    triggerCondition: staff_score < 3
+
+  - kind: review
+    title: Review long wait time complaints
+    triggerCondition: wait_time > 60_minutes

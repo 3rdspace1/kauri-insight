@@ -1,0 +1,59 @@
+name: Civic
+description: Community feedback and public service surveys
+industry: civic
+questions:
+  - text: How satisfied are you with the service you received?
+    kind: scale
+    scaleMin: 1
+    scaleMax: 5
+    rules:
+      - trigger:
+          type: range
+          min: 1
+          max: 2
+        probe: What could we have done to serve you better?
+        action: alert_service_quality
+
+  - text: Was the staff helpful and courteous?
+    kind: choice
+    choices:
+      - Very helpful
+      - Somewhat helpful
+      - Not very helpful
+      - Not helpful at all
+
+  - text: How easy was it to access our services?
+    kind: scale
+    scaleMin: 1
+    scaleMax: 5
+
+  - text: Did you feel your concerns were heard and addressed?
+    kind: choice
+    choices:
+      - Yes, completely
+      - Mostly
+      - Somewhat
+      - Not at all
+    rules:
+      - trigger:
+          type: choice
+          choices:
+            - Not at all
+        probe: Can you describe what happened?
+        action: escalate_unheard_concern
+
+  - text: What suggestions do you have to improve our services?
+    kind: text
+
+actions:
+  - kind: alert
+    title: Address service quality concern
+    triggerCondition: service_score < 3
+
+  - kind: follow_up
+    title: Follow up on unheard concerns
+    triggerCondition: concerns_not_addressed
+
+  - kind: review
+    title: Review accessibility feedback
+    triggerCondition: accessibility_score < 3

@@ -1,0 +1,70 @@
+name: SaaS
+description: Product feedback and customer satisfaction surveys for SaaS companies
+industry: saas
+questions:
+  - text: How satisfied are you with our product overall?
+    kind: scale
+    scaleMin: 1
+    scaleMax: 5
+    rules:
+      - trigger:
+          type: range
+          min: 1
+          max: 3
+        probe: What's the main thing we could improve?
+        action: alert_product_dissatisfaction
+
+  - text: How likely are you to recommend us to a colleague?
+    kind: scale
+    scaleMin: 0
+    scaleMax: 10
+    rules:
+      - trigger:
+          type: range
+          min: 0
+          max: 6
+        probe: What's holding you back from recommending us?
+        action: collect_detractor_feedback
+
+  - text: How easy is our product to use?
+    kind: scale
+    scaleMin: 1
+    scaleMax: 5
+    rules:
+      - trigger:
+          type: range
+          min: 1
+          max: 2
+        probe: Which features are confusing or difficult to use?
+        action: review_usability
+
+  - text: Which feature do you find most valuable?
+    kind: text
+
+  - text: What features or improvements would you like to see next?
+    kind: text
+
+  - text: How responsive has our support team been?
+    kind: choice
+    choices:
+      - Very responsive
+      - Somewhat responsive
+      - Not very responsive
+      - Haven't contacted support
+
+actions:
+  - kind: alert
+    title: Product dissatisfaction alert
+    triggerCondition: satisfaction_score < 3
+
+  - kind: follow_up
+    title: Reach out to detractors
+    triggerCondition: nps_score < 7
+
+  - kind: review
+    title: Review usability concerns
+    triggerCondition: ease_of_use_score < 3
+
+  - kind: follow_up
+    title: Collect feature requests
+    triggerCondition: feature_request_provided

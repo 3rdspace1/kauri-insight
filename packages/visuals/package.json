@@ -1,0 +1,21 @@
+{
+  "name": "@kauri/visuals",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./charts": "./src/charts/vega.ts",
+    "./export": "./src/export/index.ts"
+  },
+  "dependencies": {
+    "@kauri/shared": "workspace:*",
+    "playwright": "^1.52.0",
+    "pptxgenjs": "^3.12.0",
+    "vega": "^5.31.0",
+    "vega-lite": "^5.22.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "kauri-insight",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agentic adaptive survey and insight system for SMBs",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:generate": "pnpm --filter @kauri/db generate",
+    "db:migrate": "pnpm --filter @kauri/db migrate",
+    "db:seed": "pnpm --filter @kauri/db seed",
+    "gen:synthetic": "tsx scripts/gen-synthetic.ts",
+    "insights:run": "tsx scripts/insights-run.ts",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^2.3.3",
+    "eslint": "^8.57.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "pnpm@9.15.2",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

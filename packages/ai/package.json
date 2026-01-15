@@ -1,0 +1,17 @@
+{
+  "name": "@kauri/ai",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./provider": "./src/provider.ts",
+    "./insights": "./src/insights/orchestrator.ts"
+  },
+  "dependencies": {
+    "@kauri/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

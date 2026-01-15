@@ -1,0 +1,51 @@
+name: Education
+description: Post-course feedback surveys for educational institutions
+industry: education
+questions:
+  - text: How satisfied were you with the course overall?
+    kind: scale
+    scaleMin: 1
+    scaleMax: 5
+    rules:
+      - trigger:
+          type: range
+          min: 1
+          max: 2
+        probe: What aspects of the course disappointed you?
+        action: alert_low_satisfaction
+
+  - text: How would you rate the quality of instruction?
+    kind: scale
+    scaleMin: 1
+    scaleMax: 5
+    rules:
+      - trigger:
+          type: range
+          min: 1
+          max: 2
+        probe: What could the instructor have done differently?
+        action: alert_instructor_quality
+
+  - text: How likely are you to recommend this course to others?
+    kind: scale
+    scaleMin: 0
+    scaleMax: 10
+
+  - text: Which topics did you find most valuable?
+    kind: text
+
+  - text: What improvements would you suggest for future offerings?
+    kind: text
+
+actions:
+  - kind: alert
+    title: Follow up on low satisfaction
+    triggerCondition: satisfaction_score < 3
+
+  - kind: review
+    title: Review instructor feedback
+    triggerCondition: instructor_score < 3
+
+  - kind: follow_up
+    title: Request detailed feedback from detractors
+    triggerCondition: nps_score < 7
