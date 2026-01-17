@@ -8,15 +8,24 @@ import { sendEmail, createMagicLinkEmail } from '@kauri/integrations/email'
 export const authOptions: NextAuthOptions = {
   providers: [
     EmailProvider({
-      server: {
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT),
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASSWORD,
-        },
-      },
-      from: process.env.NEXTAUTH_EMAIL_FROM,
+      server: process.env.SMTP_HOST
+        ? {
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT),
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASSWORD,
+            },
+          }
+        : {
+            host: 'localhost',
+            port: 1025,
+            auth: {
+              user: 'test',
+              pass: 'test',
+            },
+          },
+      from: process.env.NEXTAUTH_EMAIL_FROM || 'noreply@kauri-insight.app',
       sendVerificationRequest: async ({ identifier: email, url }) => {
         await sendEmail(createMagicLinkEmail(email, url))
       },
