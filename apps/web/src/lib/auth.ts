@@ -85,6 +85,12 @@ declare module 'next-auth' {
   interface Session {
     tenantId?: string
     role?: string
+    user: {
+      id: string
+      name?: string | null
+      email?: string | null
+      image?: string | null
+    }
   }
 
   interface User {
