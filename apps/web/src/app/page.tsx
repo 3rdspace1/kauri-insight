@@ -13,7 +13,7 @@ export default function HomePage() {
             Kauri Insight
           </div>
           <nav className="flex items-center gap-4">
-            <Link href="/dashboard">
+            <Link href="/login">
               <Button variant="ghost">Sign In</Button>
             </Link>
           </nav>
@@ -33,7 +33,7 @@ export default function HomePage() {
               helps you take action.
             </p>
             <div className="mt-10 flex items-center justify-center gap-4">
-              <Link href="/dashboard">
+              <Link href="/login">
                 <Button size="lg">
                   Get Started <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
