@@ -186,22 +186,24 @@ export default async function InsightsPage({ params }: { params: { id: string } 
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">{insight.summary}</p>
-                {insight.evidenceJson && (
-                  <div className="mt-4">
-                    <h4 className="mb-2 text-sm font-semibold">Evidence:</h4>
-                    <div className="space-y-2">
-                      {Array.isArray(insight.evidenceJson) &&
-                        insight.evidenceJson.slice(0, 3).map((evidence: any, idx: number) => (
+                {(() => {
+                  const evidence = insight.evidenceJson as any
+                  return evidence && Array.isArray(evidence) && (
+                    <div className="mt-4">
+                      <h4 className="mb-2 text-sm font-semibold">Evidence:</h4>
+                      <div className="space-y-2">
+                        {evidence.slice(0, 3).map((item: any, idx: number) => (
                           <div
                             key={idx}
                             className="rounded-lg bg-muted p-3 text-sm"
                           >
-                            "{evidence.text || evidence}"
+                            "{typeof item === 'string' ? item : item.text || JSON.stringify(item)}"
                           </div>
                         ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
               </CardContent>
             </Card>
           ))}
