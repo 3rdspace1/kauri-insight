@@ -48,3 +48,6 @@ playwright/.cache/
 # Database
 *.db
 *.db-journal
+
+.vercel
+.env*.local
