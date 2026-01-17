@@ -1,6 +1,6 @@
 {
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install",
+  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@kauri/web",
+  "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs",
   "regions": ["syd1"]
 }
