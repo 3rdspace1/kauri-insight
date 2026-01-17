@@ -86,4 +86,8 @@ declare module 'next-auth' {
     tenantId?: string
     role?: string
   }
+
+  interface User {
+    id: string
+  }
 }

@@ -9,6 +9,7 @@
     "./middleware": "./src/middleware.ts"
   },
   "dependencies": {
+    "next": "^14.2.24",
     "zod": "^3.24.1"
   },
   "devDependencies": {
