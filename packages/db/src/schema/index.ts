@@ -1,8 +1,18 @@
 import { pgTable, text, uuid, timestamp, varchar, jsonb, integer, boolean, index, primaryKey } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
+// Users and Tenants (must come first for references)
+export const users = pgTable('user', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  emailVerified: timestamp('emailVerified'),
+  name: varchar('name', { length: 255 }),
+  image: text('image'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 // NextAuth adapter tables
-export const accounts = pgTable('accounts', {
+export const accounts = pgTable('account', {
   userId: uuid('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
   type: varchar('type', { length: 255 }).notNull(),
   provider: varchar('provider', { length: 255 }).notNull(),
@@ -18,29 +28,19 @@ export const accounts = pgTable('accounts', {
   compoundKey: primaryKey({ columns: [table.provider, table.providerAccountId] }),
 }))
 
-export const sessions = pgTable('sessions', {
+export const sessions = pgTable('session', {
   sessionToken: varchar('sessionToken', { length: 255 }).notNull().primaryKey(),
   userId: uuid('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
   expires: timestamp('expires').notNull(),
 })
 
-export const verificationTokens = pgTable('verification_token', {
+export const verificationTokens = pgTable('verificationToken', {
   identifier: varchar('identifier', { length: 255 }).notNull(),
   token: varchar('token', { length: 255 }).notNull(),
   expires: timestamp('expires').notNull(),
 }, (table) => ({
   compoundKey: primaryKey({ columns: [table.identifier, table.token] }),
 }))
-
-// Users and Tenants
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  emailVerified: timestamp('emailVerified'),
-  name: varchar('name', { length: 255 }),
-  image: text('image'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
 
 export const tenants = pgTable('tenants', {
   id: uuid('id').primaryKey().defaultRandom(),
