@@ -15,6 +15,13 @@
       "when": 1768719128512,
       "tag": "0001_good_matthew_murdock",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768721000000,
+      "tag": "0002_rename_nextauth_tables",
+      "breakpoints": true
     }
   ]
 }
