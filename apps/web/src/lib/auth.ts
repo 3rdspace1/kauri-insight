@@ -1,11 +1,13 @@
 import type { NextAuthOptions } from 'next-auth'
 import EmailProvider from 'next-auth/providers/email'
+import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import { db } from '@kauri/db/client'
 import { users } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
 import { sendEmail, createMagicLinkEmail } from '@kauri/integrations/email'
 
 export const authOptions: NextAuthOptions = {
+  adapter: DrizzleAdapter(db) as any,
   providers: [
     EmailProvider({
       server: process.env.SMTP_HOST
