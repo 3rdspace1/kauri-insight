@@ -8,7 +8,11 @@
       "Bash(pnpm list:*)",
       "Bash(grep:*)",
       "Bash(pnpm install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(pnpm db:generate:*)"
     ]
   }
 }

@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       .values({
         tenantId: session.tenantId,
         name: validated.name,
+        title: validated.name, // Use name as title for now
         type: validated.type || null,
         status: validated.status,
       })

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@kauri/db/client'
-import { responses, profiles, consents } from '@kauri/db/schema'
+import { responses, profiles, consents, surveys } from '@kauri/db/schema'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 
@@ -17,7 +17,19 @@ export async function POST(request: Request) {
     const body = await request.json()
     const validated = createResponseSchema.parse(body)
 
-    // Check if profile exists, create if not
+    // Get survey to obtain tenantId
+    const survey = await db.query.surveys.findFirst({
+      where: eq(surveys.id, validated.surveyId),
+    })
+
+    if (!survey) {
+      return NextResponse.json(
+        { error: 'Survey not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if profile exists for this tenant, create if not
     let profile = await db.query.profiles.findFirst({
       where: eq(profiles.email, validated.email),
     })
@@ -27,6 +39,7 @@ export async function POST(request: Request) {
         .insert(profiles)
         .values({
           email: validated.email,
+          tenantId: survey.tenantId,
         })
         .returning()
       profile = newProfile

@@ -65,7 +65,9 @@ export const surveys = pgTable('surveys', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
-  status: varchar('status', { length: 50 }).notNull().default('draft'), // draft, active, paused, archived
+  title: varchar('title', { length: 255 }).notNull(), // Display title (same as name for now)
+  description: text('description'),
+  status: varchar('status', { length: 50 }).notNull().default('draft'), // draft, active, closed
   type: varchar('type', { length: 100 }), // appointment_follow_up, pulse_check, post_emergency
   version: integer('version').notNull().default(1),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -78,11 +80,17 @@ export const questions = pgTable('questions', {
   surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
   kind: varchar('kind', { length: 50 }).notNull(), // scale, text, choice
   text: text('text').notNull(),
+  type: varchar('type', { length: 50 }).notNull().default('text'), // scale, text, choice (duplicate of kind for consistency)
+  required: boolean('required').notNull().default(true),
   scaleMin: integer('scale_min'),
   scaleMax: integer('scale_max'),
-  choicesJson: jsonb('choices_json'), // Array of choice options
+  scaleMinLabel: varchar('scale_min_label', { length: 100 }),
+  scaleMaxLabel: varchar('scale_max_label', { length: 100 }),
+  choices: jsonb('choices').$type<string[]>(),
+  choicesJson: jsonb('choices_json'), // Array of choice options (legacy)
   prefill: text('prefill'), // AI-suggested question context
   order: integer('order').notNull().default(0),
+  orderIndex: integer('order_index').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   surveyIdx: index('questions_survey_idx').on(table.surveyId),
@@ -112,10 +120,11 @@ export const profiles = pgTable('profiles', {
 
 export const consents = pgTable('consents', {
   id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   profileId: uuid('profile_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-  scope: varchar('scope', { length: 100 }).notNull(), // survey_response, marketing, etc
-  grantedAt: timestamp('granted_at').defaultNow().notNull(),
+  surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
+  consentGiven: boolean('consent_given').notNull().default(false),
+  consentText: text('consent_text'),
+  consentedAt: timestamp('consented_at').defaultNow().notNull(),
   revokedAt: timestamp('revoked_at'),
 })
 
@@ -124,6 +133,7 @@ export const responses = pgTable('responses', {
   id: uuid('id').primaryKey().defaultRandom(),
   surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
   profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+  status: varchar('status', { length: 50 }).notNull().default('in_progress'),
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
@@ -136,6 +146,7 @@ export const responseItems = pgTable('response_items', {
   questionId: uuid('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
   valueText: text('value_text'),
   valueNum: integer('value_num'),
+  valueScale: integer('value_scale'),
   valueChoice: varchar('value_choice', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
