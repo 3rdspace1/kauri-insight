@@ -6,8 +6,9 @@ import { eq, count } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Brain, Download, Sparkles, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Brain, Download, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import { GenerateInsightsButton } from '@/components/insights/GenerateInsightsButton'
 
 export default async function InsightsPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -66,10 +67,7 @@ export default async function InsightsPage({ params }: { params: { id: string } 
             <Download className="mr-2 h-4 w-4" />
             Export Report
           </Button>
-          <Button>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Generate Insights
-          </Button>
+          <GenerateInsightsButton surveyId={params.id} />
         </div>
       </div>
 
@@ -139,16 +137,13 @@ export default async function InsightsPage({ params }: { params: { id: string } 
       ) : insights.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <Sparkles className="mb-4 h-16 w-16 text-muted-foreground" />
+            <Brain className="mb-4 h-16 w-16 text-muted-foreground" />
             <h3 className="mb-2 text-xl font-semibold">No insights generated yet</h3>
             <p className="mb-6 max-w-md text-muted-foreground">
               You have {totalResponses} response{totalResponses !== 1 ? 's' : ''}. Click
               "Generate Insights" to analyse them with AI.
             </p>
-            <Button>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate Insights Now
-            </Button>
+            <GenerateInsightsButton surveyId={params.id} />
           </CardContent>
         </Card>
       ) : (
