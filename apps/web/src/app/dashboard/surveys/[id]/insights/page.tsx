@@ -6,9 +6,10 @@ import { eq, count } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Brain, Download, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Brain, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { GenerateInsightsButton } from '@/components/insights/GenerateInsightsButton'
+import { ExportReportButton } from '@/components/insights/ExportReportButton'
 
 export default async function InsightsPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -63,10 +64,11 @@ export default async function InsightsPage({ params }: { params: { id: string } 
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Report
-          </Button>
+          <ExportReportButton
+            surveyId={params.id}
+            surveyName={survey.name}
+            insightCount={insights.length}
+          />
           <GenerateInsightsButton surveyId={params.id} />
         </div>
       </div>
