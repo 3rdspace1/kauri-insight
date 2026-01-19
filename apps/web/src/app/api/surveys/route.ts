@@ -7,6 +7,8 @@ import { createSurveySchema } from '@kauri/shared/validators'
 import { createSuccessResponse, createErrorResponse, ApiError } from '@kauri/shared/middleware'
 import { eq, and, desc } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/surveys - List surveys for tenant
 export async function GET(request: NextRequest) {
   try {

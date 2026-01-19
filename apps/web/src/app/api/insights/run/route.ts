@@ -8,6 +8,8 @@ import { createSuccessResponse, createErrorResponse, ApiError } from '@kauri/sha
 import { eq } from 'drizzle-orm'
 import type { InsightPayload } from '@kauri/shared/types'
 
+export const dynamic = 'force-dynamic'
+
 // POST /api/insights/run?surveyId=xxx
 export async function POST(request: NextRequest) {
   try {

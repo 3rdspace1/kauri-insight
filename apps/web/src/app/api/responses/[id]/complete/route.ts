@@ -3,6 +3,8 @@ import { db } from '@kauri/db/client'
 import { responses, responseItems } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }

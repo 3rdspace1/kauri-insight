@@ -3,6 +3,8 @@ import { db } from '@kauri/db/client'
 import { surveys } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   request: Request,
   { params }: { params: { surveyId: string } }

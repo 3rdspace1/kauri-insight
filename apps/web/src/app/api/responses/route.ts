@@ -4,6 +4,8 @@ import { responses, profiles, consents, surveys } from '@kauri/db/schema'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 const createResponseSchema = z.object({
   surveyId: z.string().uuid(),
   email: z.string().email(),

@@ -6,6 +6,8 @@ import { surveys } from '@kauri/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const updateSurveySchema = z.object({
   name: z.string().min(3).max(200).optional(),
   description: z.string().max(1000).nullable().optional(),

@@ -4,6 +4,8 @@ import { responseItems, responses } from '@kauri/db/schema'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 const createItemSchema = z.object({
   questionId: z.string().uuid(),
   valueScale: z.number().min(1).max(10).nullable().optional(),
