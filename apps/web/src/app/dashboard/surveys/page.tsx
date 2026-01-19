@@ -34,10 +34,12 @@ export default async function SurveysPage() {
             Manage your surveys and view responses
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          New Survey
-        </Button>
+        <Link href="/dashboard/surveys/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            New Survey
+          </Button>
+        </Link>
       </div>
 
       {tenantSurveys.length === 0 ? (
@@ -49,10 +51,12 @@ export default async function SurveysPage() {
               Create your first adaptive survey to start collecting intelligent feedback
               from your users.
             </p>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Your First Survey
-            </Button>
+            <Link href="/dashboard/surveys/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First Survey
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       ) : (
