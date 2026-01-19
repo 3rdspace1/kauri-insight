@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, BarChart3, FileText, Share2 } from 'lucide-react'
 import Link from 'next/link'
+import { DeleteSurveyButton } from '@/components/surveys/DeleteSurveyButton'
 
 export default async function SurveyDetailPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -70,6 +71,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
           </div>
         </div>
         <div className="flex gap-2">
+          <DeleteSurveyButton surveyId={params.id} surveyName={survey.name} />
           <Button variant="outline">
             <Share2 className="mr-2 h-4 w-4" />
             Share
