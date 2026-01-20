@@ -1,12 +1,19 @@
 /**
- * Nano Banana Pro Integration via ModelsLab API
+ * Nano Banana Pro Integration via ModelsLab API v7
  *
- * Generates high-quality visual assets using the Nano Banana model
+ * Generates high-quality visual assets using the Nano Banana Pro model
+ * with expert-crafted prompts and 4K resolution support
  * https://modelslab.com/
  */
 
+import {
+  generateNanaBananaPrompt,
+  EXPERT_PRESETS,
+  type EnhancedPromptOptions,
+} from './prompt-engine'
+
 const MODELSLAB_API_KEY = process.env.MODELSLAB_API_KEY || ''
-const MODELSLAB_API_URL = 'https://modelslab.com/api/v6/images/text2img'
+const MODELSLAB_API_URL = 'https://modelslab.com/api/v7/images/text-to-image'
 
 export interface GraphicOptions {
   prompt: string
@@ -16,22 +23,32 @@ export interface GraphicOptions {
   negativePrompt?: string
 }
 
-interface ModelsLabResponse {
+interface ModelsLabV7Response {
   status: string
-  generationTime: number
-  id: number
-  output: string[]
-  meta?: any
+  message?: string
+  output?: string[]
+  meta?: {
+    prompt: string
+    model_id: string
+    aspect_ratio: string
+    seed: number
+  }
 }
 
 export async function generateGraphic(options: GraphicOptions): Promise<string> {
   if (!MODELSLAB_API_KEY) {
-    console.log('🎨 [Nano Banana] No API key configured, using placeholder')
+    console.log('🎨 [Nano Banana Pro] No API key configured, using elegant placeholder')
     return getPlaceholderGraphic(options.style || 'business')
   }
 
   try {
-    console.log('🎨 Generating graphic with Nano Banana Pro via ModelsLab...')
+    console.log('🎨 Generating 4K visual with Nano Banana Pro via ModelsLab v7...')
+
+    // Use v7 API with aspect ratio instead of width/height
+    const aspectRatio = calculateAspectRatio(
+      options.width || 1200,
+      options.height || 630
+    )
 
     const response = await fetch(MODELSLAB_API_URL, {
       method: 'POST',
@@ -40,44 +57,60 @@ export async function generateGraphic(options: GraphicOptions): Promise<string> 
       },
       body: JSON.stringify({
         key: MODELSLAB_API_KEY,
-        model_id: 'nano-banana',
+        model_id: 'nano-banana-pro',
         prompt: enhancePrompt(options.prompt, options.style || 'business'),
         negative_prompt:
           options.negativePrompt ||
-          'text, words, letters, people, faces, logos, ugly, blurry, distorted, low quality, watermark',
-        width: options.width || 1200,
-        height: options.height || 630,
-        samples: 1,
-        num_inference_steps: 30,
-        safety_checker: false,
-        enhance_prompt: 'yes',
-        guidance_scale: 7.5,
-        webhook: null,
-        track_id: null,
+          'text, words, letters, numbers, people, faces, logos, ugly, blurry, distorted, low quality, watermark, amateur, unprofessional',
+        aspect_ratio: aspectRatio,
       }),
     })
 
     if (!response.ok) {
-      throw new Error(`ModelsLab API error: ${response.statusText}`)
+      const errorText = await response.text()
+      throw new Error(`ModelsLab API v7 error: ${response.statusText} - ${errorText}`)
     }
 
-    const data: ModelsLabResponse = await response.json()
+    const data: ModelsLabV7Response = await response.json()
 
-    if (data.status === 'success' && data.output.length > 0) {
-      console.log(`✅ Graphic generated in ${data.generationTime}s`)
+    if (data.status === 'success' && data.output && data.output.length > 0) {
+      console.log(`✅ 4K visual generated successfully with Nano Banana Pro`)
+      console.log(`📊 Metadata: ${data.meta?.model_id}, Aspect: ${data.meta?.aspect_ratio}`)
       return data.output[0]
     }
 
-    throw new Error('No output from ModelsLab API')
+    throw new Error(data.message || 'No output from ModelsLab API v7')
   } catch (error) {
     console.error('❌ Failed to generate graphic:', error)
-    console.log('Falling back to placeholder')
+    console.log('Falling back to elegant SVG placeholder')
     return getPlaceholderGraphic(options.style || 'business')
   }
 }
 
 /**
- * Generate cover image for a report
+ * Calculate aspect ratio for v7 API
+ */
+function calculateAspectRatio(width: number, height: number): string {
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
+  const divisor = gcd(width, height)
+  const ratioW = width / divisor
+  const ratioH = height / divisor
+
+  // Map to common aspect ratios
+  const ratio = ratioW / ratioH
+
+  if (Math.abs(ratio - 1) < 0.1) return '1:1' // Square
+  if (Math.abs(ratio - 16 / 9) < 0.1) return '16:9' // Widescreen
+  if (Math.abs(ratio - 4 / 3) < 0.1) return '4:3' // Standard
+  if (Math.abs(ratio - 3 / 2) < 0.1) return '3:2' // Classic photo
+  if (Math.abs(ratio - 21 / 9) < 0.1) return '21:9' // Ultra-wide
+
+  // Default to closest
+  return ratio > 1.5 ? '16:9' : '1:1'
+}
+
+/**
+ * Generate cover image for a report using expert prompting
  */
 export async function generateReportCover(options: {
   industry: string
@@ -86,83 +119,91 @@ export async function generateReportCover(options: {
   companyName?: string
   primaryColor?: string
 }): Promise<string> {
-  const sentimentMood =
-    options.sentiment === 'positive'
-      ? 'optimistic, bright, uplifting, energetic'
-      : options.sentiment === 'negative'
-      ? 'serious, focused, professional, concerned'
-      : 'balanced, calm, neutral, stable'
+  console.log(`🎨 Generating expert-crafted cover for ${options.industry} survey...`)
 
-  const prompt = `
-Professional business report cover design for ${options.industry} industry.
-Survey: "${options.surveyName}".
-${options.companyName ? `Company: ${options.companyName}.` : ''}
-Mood: ${sentimentMood}.
-Style: Modern, clean, corporate, abstract.
-Elements: data visualization, charts, gradients, geometric shapes.
-Colors: ${options.primaryColor || 'blue, purple'} palette.
-High quality, 4k, professional, sharp, clean composition.
-  `.trim()
+  // Use expert prompting engine for maximum quality
+  const { prompt, negativePrompt } = generateNanaBananaPrompt(
+    `Breathtaking survey report cover: "${options.surveyName}"${options.companyName ? ` for ${options.companyName}` : ''}`,
+    {
+      context: {
+        industry: options.industry,
+        sentiment: options.sentiment,
+        dataType: 'categorical',
+        purpose: 'executive',
+        audience: 'executive',
+      },
+      brandColors: options.primaryColor ? [options.primaryColor] : undefined,
+      emphasizeDataIntegrity: true,
+    }
+  )
 
   return generateGraphic({
     prompt,
-    negativePrompt:
-      'text, words, letters, people, faces, logos, photos, realistic, ugly, blurry',
+    negativePrompt,
     width: 1920,
     height: 1080,
   })
 }
 
 /**
- * Generate infographic visual
+ * Generate infographic visual using expert prompting
  */
 export async function generateInfographic(options: {
   topic: string
+  industry: string
   style?: string
 }): Promise<string> {
-  const prompt = `
-Professional infographic illustration about ${options.topic}.
-Style: ${options.style || 'modern, minimal, clean'}, flat design, vector art style.
-Elements: icons, charts, data points, visual hierarchy.
-Color palette: professional business colors with gradients.
-High quality, sharp, clear, 4k, balanced composition.
-  `.trim()
+  console.log(`🎨 Generating expert infographic about ${options.topic}...`)
+
+  const { prompt, negativePrompt } = generateNanaBananaPrompt(
+    `Professional data infographic: ${options.topic}`,
+    {
+      context: {
+        industry: options.industry,
+        sentiment: 'neutral',
+        dataType: 'categorical',
+        purpose: 'analytical',
+        audience: 'technical',
+      },
+      customElements: ['data points', 'statistical indicators', 'metric visualizations', 'information hierarchy'],
+    }
+  )
 
   return generateGraphic({
     prompt,
-    negativePrompt: 'text, words, people, faces, photo, realistic, blurry, messy',
+    negativePrompt,
     width: 1024,
     height: 1024,
   })
 }
 
 /**
- * Generate visual metaphor for an insight
+ * Generate visual metaphor for an insight using expert prompting
  */
 export async function generateInsightVisual(options: {
   insightTitle: string
   sentiment: 'positive' | 'neutral' | 'negative'
   industry: string
 }): Promise<string> {
-  const sentimentColors =
-    options.sentiment === 'positive'
-      ? 'green, blue, bright, vibrant'
-      : options.sentiment === 'negative'
-      ? 'orange, red, warm, alert'
-      : 'blue, gray, neutral, balanced'
+  console.log(`🎨 Generating expert visual metaphor for insight...`)
 
-  const prompt = `
-Abstract visual metaphor representing "${options.insightTitle}" in ${options.industry} industry.
-Style: professional, modern, clean, minimal.
-Color palette: ${sentimentColors}.
-Elements: data, analytics, business intelligence, insights, abstract shapes.
-Mood: professional, clear, focused.
-High quality, 4k, sharp, clean composition.
-  `.trim()
+  const { prompt, negativePrompt } = generateNanaBananaPrompt(
+    `Abstract visual metaphor: "${options.insightTitle}"`,
+    {
+      context: {
+        industry: options.industry,
+        sentiment: options.sentiment,
+        dataType: 'qualitative',
+        purpose: 'storytelling',
+        audience: 'general',
+      },
+      customElements: ['data visualization', 'insight indicators', 'analytical forms'],
+    }
+  )
 
   return generateGraphic({
     prompt,
-    negativePrompt: 'text, words, people, faces, ugly, blurry, cluttered',
+    negativePrompt,
     width: 1024,
     height: 768,
   })
