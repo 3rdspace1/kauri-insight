@@ -278,12 +278,35 @@ async function generateVisualAssets(
     })
   }
 
-  // TODO: Generate cover image using Nano Banana Pro
-  // const coverImage = await generateCoverImage(businessContext, insights)
+  // Generate cover image using Nano Banana Pro (if configured)
+  let coverImage: string | undefined
+
+  if (businessContext) {
+    try {
+      const { generateReportCover, isNanaBananaAvailable } = await import('@kauri/graphics/nano-banana')
+
+      if (isNanaBananaAvailable()) {
+        console.log('🎨 Generating AI cover image with Nano Banana Pro...')
+
+        const dominantSentiment = getDominantSentiment(insights)
+
+        coverImage = await generateReportCover({
+          industry: businessContext.industry || 'Business',
+          surveyName: 'Customer Feedback Analysis',
+          sentiment: dominantSentiment,
+          companyName: businessContext.companyName,
+        })
+
+        console.log('✅ Cover image generated!')
+      }
+    } catch (error) {
+      console.error('Failed to generate cover image:', error)
+    }
+  }
 
   return {
     charts,
-    // coverImage, // Will be implemented when Nano Banana is connected
+    coverImage,
   }
 }
 
@@ -367,4 +390,27 @@ function generateRecommendationText(insight: any, industryContext: any): string 
   const bestPractice = industryContext.bestPractices[0] || 'industry best practices'
 
   return `Based on the insight "${insight.title}", we recommend implementing specific improvements aligned with ${bestPractice}. This addresses the feedback directly while following proven approaches in your industry.`
+}
+
+/**
+ * Helper: Get dominant sentiment from insights
+ */
+function getDominantSentiment(insights: any[]): 'positive' | 'neutral' | 'negative' {
+  const counts = {
+    positive: 0,
+    neutral: 0,
+    negative: 0,
+  }
+
+  insights.forEach(insight => {
+    if (insight.sentiment && counts.hasOwnProperty(insight.sentiment)) {
+      counts[insight.sentiment as keyof typeof counts]++
+    }
+  })
+
+  const dominant = Object.entries(counts).reduce((max, [sentiment, count]) =>
+    count > max[1] ? [sentiment, count] : max
+  , ['neutral', 0] as [string, number])
+
+  return dominant[0] as 'positive' | 'neutral' | 'negative'
 }

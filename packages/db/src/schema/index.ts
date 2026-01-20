@@ -46,6 +46,13 @@ export const tenants = pgTable('tenants', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 255 }).notNull().unique(),
+  // Business context for AI-powered reporting
+  industry: varchar('industry', { length: 255 }),
+  website: text('website'),
+  description: text('description'),
+  logo: text('logo'), // URL or base64
+  primaryColor: varchar('primary_color', { length: 7 }).default('#667eea'), // Hex color
+  contextJson: jsonb('context_json'), // Additional scraped context
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
