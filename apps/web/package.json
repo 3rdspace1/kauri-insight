@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "postinstall": "playwright install chromium --with-deps || echo 'Playwright install failed, will retry during build'"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.7.3",
