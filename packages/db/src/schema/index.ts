@@ -77,6 +77,7 @@ export const surveys = pgTable('surveys', {
   status: varchar('status', { length: 50 }).notNull().default('draft'), // draft, active, closed
   type: varchar('type', { length: 100 }), // appointment_follow_up, pulse_check, post_emergency
   version: integer('version').notNull().default(1),
+  language: varchar('language', { length: 10 }).notNull().default('en'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   tenantCreatedIdx: index('surveys_tenant_created_idx').on(table.tenantId, table.createdAt),
@@ -96,6 +97,7 @@ export const questions = pgTable('questions', {
   choices: jsonb('choices').$type<string[]>(),
   choicesJson: jsonb('choices_json'), // Array of choice options (legacy)
   prefill: text('prefill'), // AI-suggested question context
+  logicJson: jsonb('logic_json'), // Branching logic: { rules: [{ condition: 'equals', value: 'X', goTo: 'uuid' }] }
   order: integer('order').notNull().default(0),
   orderIndex: integer('order_index').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -198,6 +200,21 @@ export const sources = pgTable('sources', {
   tenantIdx: index('sources_tenant_idx').on(table.tenantId),
 }))
 
+export const invitations = pgTable('invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  email: varchar('email', { length: 255 }).notNull(),
+  role: varchar('role', { length: 50 }).notNull().default('viewer'),
+  token: varchar('token', { length: 255 }).notNull().unique(),
+  status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, accepted, expired
+  expiresAt: timestamp('expires_at').notNull(),
+  invitedBy: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  tenantIdx: index('invitations_tenant_idx').on(table.tenantId),
+  emailIdx: index('invitations_email_idx').on(table.email),
+}))
+
 // Reports
 export const reports = pgTable('reports', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -222,18 +239,18 @@ export const reportSections = pgTable('report_sections', {
 })
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many }: any) => ({
   memberships: many(memberships),
 }))
 
-export const tenantsRelations = relations(tenants, ({ many }) => ({
+export const tenantsRelations = relations(tenants, ({ many, one }: any) => ({
   memberships: many(memberships),
   surveys: many(surveys),
   profiles: many(profiles),
   sources: many(sources),
 }))
 
-export const membershipsRelations = relations(memberships, ({ one }) => ({
+export const membershipsRelations = relations(memberships, ({ one }: any) => ({
   tenant: one(tenants, {
     fields: [memberships.tenantId],
     references: [tenants.id],
@@ -244,7 +261,7 @@ export const membershipsRelations = relations(memberships, ({ one }) => ({
   }),
 }))
 
-export const surveysRelations = relations(surveys, ({ one, many }) => ({
+export const surveysRelations = relations(surveys, ({ one, many }: any) => ({
   tenant: one(tenants, {
     fields: [surveys.tenantId],
     references: [tenants.id],
@@ -257,7 +274,7 @@ export const surveysRelations = relations(surveys, ({ one, many }) => ({
   reports: many(reports),
 }))
 
-export const questionsRelations = relations(questions, ({ one, many }) => ({
+export const questionsRelations = relations(questions, ({ one, many }: any) => ({
   survey: one(surveys, {
     fields: [questions.surveyId],
     references: [surveys.id],
@@ -286,7 +303,7 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
   responses: many(responses),
 }))
 
-export const responsesRelations = relations(responses, ({ one, many }) => ({
+export const responsesRelations = relations(responses, ({ one, many }: any) => ({
   survey: one(surveys, {
     fields: [responses.surveyId],
     references: [surveys.id],
@@ -306,5 +323,52 @@ export const responseItemsRelations = relations(responseItems, ({ one }) => ({
   question: one(questions, {
     fields: [responseItems.questionId],
     references: [questions.id],
+  }),
+}))
+
+export const insightsRelations = relations(insights, ({ one }: any) => ({
+  survey: one(surveys, {
+    fields: [insights.surveyId],
+    references: [surveys.id],
+  }),
+}))
+
+export const actionsRelations = relations(actions, ({ one }: any) => ({
+  survey: one(surveys, {
+    fields: [actions.surveyId],
+    references: [surveys.id],
+  }),
+}))
+
+export const sourcesRelations = relations(sources, ({ one }: any) => ({
+  tenant: one(tenants, {
+    fields: [sources.tenantId],
+    references: [tenants.id],
+  }),
+}))
+
+export const reportsRelations = relations(reports, ({ one, many }: any) => ({
+  survey: one(surveys, {
+    fields: [reports.surveyId],
+    references: [surveys.id],
+  }),
+  sections: many(reportSections),
+}))
+
+export const reportSectionsRelations = relations(reportSections, ({ one }: any) => ({
+  report: one(reports, {
+    fields: [reportSections.reportId],
+    references: [reports.id],
+  }),
+}))
+
+export const invitationsRelations = relations(invitations, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [invitations.tenantId],
+    references: [tenants.id],
+  }),
+  inviter: one(users, {
+    fields: [invitations.invitedBy],
+    references: [users.id],
   }),
 }))

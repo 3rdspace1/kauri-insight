@@ -9,15 +9,17 @@ import { z } from 'zod'
 export const dynamic = 'force-dynamic'
 
 const createQuestionSchema = z.object({
-  kind: z.enum(['scale', 'text', 'choice']),
+  id: z.string().uuid().optional(),
+  kind: z.enum(['scale', 'text', 'choice', 'multi_select', 'rating']),
   text: z.string().min(1, 'Question text is required'),
-  type: z.enum(['scale', 'text', 'choice']),
+  type: z.enum(['scale', 'text', 'choice', 'multi_select', 'rating']),
   required: z.boolean().default(true),
   scaleMin: z.number().int().optional(),
   scaleMax: z.number().int().optional(),
   scaleMinLabel: z.string().optional(),
   scaleMaxLabel: z.string().optional(),
   choices: z.array(z.string()).optional(),
+  logicJson: z.any().optional(),
   orderIndex: z.number().int().default(0),
 })
 
@@ -61,6 +63,7 @@ export async function POST(
     const [question] = await db
       .insert(questions)
       .values({
+        id: validated.id,
         surveyId: params.id,
         kind: validated.kind,
         text: validated.text,
@@ -71,6 +74,7 @@ export async function POST(
         scaleMinLabel: validated.scaleMinLabel,
         scaleMaxLabel: validated.scaleMaxLabel,
         choices: validated.choices,
+        logicJson: validated.logicJson,
         orderIndex: validated.orderIndex || nextOrderIndex,
         order: validated.orderIndex || nextOrderIndex,
       })

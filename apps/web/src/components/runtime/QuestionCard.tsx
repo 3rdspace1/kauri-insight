@@ -7,13 +7,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
+import { Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Question {
   id: string
   text: string
-  type: 'scale' | 'text' | 'choice'
+  type: 'scale' | 'text' | 'choice' | 'multi_select' | 'rating'
   required: boolean
   scaleMin?: number | null
   scaleMax?: number | null
@@ -43,19 +45,31 @@ export function QuestionCard({
   isLast,
   showError,
 }: QuestionCardProps) {
-  const [localValue, setLocalValue] = useState<number | string | null>(value || null)
+  const [localValue, setLocalValue] = useState<any>(value || (question.type === 'multi_select' ? [] : null))
 
-  const handleChange = (newValue: number | string) => {
+  const handleChange = (newValue: any) => {
     setLocalValue(newValue)
     onChange(newValue)
   }
 
-  const canProceed = !question.required || (localValue !== null && localValue !== '')
+  const handleMultiSelectChange = (choice: string, checked: boolean) => {
+    const currentValues = Array.isArray(localValue) ? localValue : []
+    const nextValues = checked
+      ? [...currentValues, choice]
+      : currentValues.filter((v: string) => v !== choice)
+    handleChange(nextValues)
+  }
+
+  const canProceed = !question.required || (
+    question.type === 'multi_select'
+      ? (Array.isArray(localValue) && localValue.length > 0)
+      : (localValue !== null && localValue !== '')
+  )
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto glass shadow-xl border-white/20">
       <CardHeader>
-        <CardTitle className="text-xl font-medium">
+        <CardTitle className="text-2xl font-semibold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
           {question.text}
           {question.required && <span className="text-destructive ml-1">*</span>}
         </CardTitle>
@@ -73,7 +87,7 @@ export function QuestionCard({
               max={question.scaleMax || 10}
               step={1}
               value={[localValue as number || question.scaleMin || 1]}
-              onValueChange={(values) => handleChange(values[0])}
+              onValueChange={(values: number[]) => handleChange(values[0])}
               className="w-full"
             />
             <div className="text-center">
@@ -111,11 +125,13 @@ export function QuestionCard({
           >
             <div className="space-y-3">
               {question.choices.map((choice, index) => (
-                <div key={index} className="flex items-center space-x-2">
+                <div key={index} className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-accent cursor-pointer transition-colors"
+                  onClick={() => handleChange(choice)}
+                >
                   <RadioGroupItem value={choice} id={`choice-${index}`} />
                   <Label
                     htmlFor={`choice-${index}`}
-                    className="text-base font-normal cursor-pointer"
+                    className="text-base font-normal cursor-pointer flex-1"
                   >
                     {choice}
                   </Label>
@@ -123,6 +139,51 @@ export function QuestionCard({
               ))}
             </div>
           </RadioGroup>
+        )}
+
+        {/* Multi-Select Question */}
+        {question.type === 'multi_select' && question.choices && (
+          <div className="space-y-3">
+            {question.choices.map((choice, index) => (
+              <div key={index} className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-accent cursor-pointer transition-colors"
+                onClick={() => handleMultiSelectChange(choice, !(Array.isArray(localValue) && localValue.includes(choice)))}
+              >
+                <Checkbox
+                  id={`choice-${index}`}
+                  checked={Array.isArray(localValue) && localValue.includes(choice)}
+                  onCheckedChange={(checked: boolean) => handleMultiSelectChange(choice, !!checked)}
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                />
+                <Label
+                  htmlFor={`choice-${index}`}
+                  className="text-base font-normal cursor-pointer flex-1"
+                >
+                  {choice}
+                </Label>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Rating Question */}
+        {question.type === 'rating' && (
+          <div className="flex justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                className="focus:outline-none transition-transform active:scale-90"
+                onClick={() => handleChange(star)}
+              >
+                <Star
+                  className={cn(
+                    "h-12 w-12",
+                    localValue >= star ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"
+                  )}
+                />
+              </button>
+            ))}
+          </div>
         )}
 
         {/* Error Message */}

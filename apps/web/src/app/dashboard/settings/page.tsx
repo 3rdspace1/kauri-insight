@@ -3,7 +3,11 @@ import { authOptions } from '@/lib/auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { redirect } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { db } from '@kauri/db/client'
+import { memberships, invitations } from '@kauri/db/schema'
+import { eq } from 'drizzle-orm'
+import { InviteMemberForm } from '@/components/teams/InviteMemberForm'
+import { TeamMemberList } from '@/components/teams/TeamMemberList'
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions)
@@ -43,21 +47,40 @@ export default async function SettingsPage() {
 
       {/* Organisation */}
       {session.tenantId && (
-        <Card>
+        <Card className="glass border-white/10 shadow-lg">
           <CardHeader>
-            <CardTitle>Organisation</CardTitle>
-            <CardDescription>Your organisation details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div>
-              <label className="text-sm font-medium">Organisation ID</label>
-              <p className="text-sm text-muted-foreground">{session.tenantId}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Organisation & Team</CardTitle>
+                <CardDescription>Manage your team members and roles</CardDescription>
+              </div>
+              {(session.role === 'admin' || session.role === 'owner') && (
+                <InviteMemberForm />
+              )}
             </div>
-            <div className="mt-2">
-              <label className="text-sm font-medium">Role</label>
-              <p className="text-sm text-muted-foreground">
-                {session.role || 'Member'}
-              </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="p-4 rounded-lg bg-muted/30 border">
+                <label className="text-xs font-semibold uppercase text-muted-foreground">Organisation ID</label>
+                <p className="text-sm font-mono mt-1">{session.tenantId}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/30 border">
+                <label className="text-xs font-semibold uppercase text-muted-foreground">My Role</label>
+                <div className="mt-1">
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                    {session.role || 'Member'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Active Members</h3>
+              <TeamMemberList
+                tenantId={session.tenantId}
+                currentUserRole={session.role}
+              />
             </div>
           </CardContent>
         </Card>

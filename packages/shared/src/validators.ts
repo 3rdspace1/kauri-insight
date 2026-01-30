@@ -5,11 +5,13 @@ export const createSurveySchema = z.object({
   name: z.string().min(1).max(255),
   type: z.enum(['appointment_follow_up', 'pulse_check', 'post_emergency', 'general']).optional(),
   status: z.enum(['draft', 'active', 'paused', 'archived']).default('draft'),
+  language: z.string().min(2).max(10).default('en'),
 })
 
 export const updateSurveySchema = z.object({
   name: z.string().min(1).max(255).optional(),
   status: z.enum(['draft', 'active', 'paused', 'archived']).optional(),
+  language: z.string().min(2).max(10).optional(),
 })
 
 // Question validators

@@ -10,10 +10,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/use-toast'
-import { ArrowLeft, Plus, Trash2, GripVertical } from 'lucide-react'
+import { Plus, Trash2, Save, ArrowLeft, Brain, Sparkles, GripVertical } from 'lucide-react'
 import Link from 'next/link'
 
-type QuestionType = 'scale' | 'text' | 'choice'
+type QuestionType = 'scale' | 'text' | 'choice' | 'multi_select' | 'rating'
+
+interface LogicRule {
+  id: string
+  condition: 'equals' | 'not_equals' | 'greater_than' | 'less_than'
+  value: string | number
+  goTo: string // Target question ID
+}
 
 interface Question {
   id: string
@@ -25,6 +32,9 @@ interface Question {
   scaleMinLabel?: string
   scaleMaxLabel?: string
   choices?: string[]
+  logicJson?: {
+    rules: LogicRule[]
+  }
 }
 
 export default function NewSurveyPage() {
@@ -32,9 +42,10 @@ export default function NewSurveyPage() {
   const { toast } = useToast()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [surveyName, setSurveyName] = useState('')
-  const [surveyDescription, setSurveyDescription] = useState('')
-  const [surveyType, setSurveyType] = useState<string>('general')
+  const [name, setName] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [language, setLanguage] = useState('en')
   const [questions, setQuestions] = useState<Question[]>([])
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null)
 
@@ -65,6 +76,7 @@ export default function NewSurveyPage() {
       scaleMinLabel: newQuestion.scaleMinLabel,
       scaleMaxLabel: newQuestion.scaleMaxLabel,
       choices: newQuestion.choices,
+      logicJson: newQuestion.logicJson,
     }
 
     if (editingQuestionId) {
@@ -94,7 +106,7 @@ export default function NewSurveyPage() {
   }
 
   const handleSubmit = async () => {
-    if (!surveyName) {
+    if (!name) {
       toast({
         title: 'Error',
         description: 'Survey name is required',
@@ -120,9 +132,12 @@ export default function NewSurveyPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: surveyName,
-          type: surveyType,
+          name: name,
+          type: 'general',
           status: 'draft',
+          title: title || name,
+          description,
+          language,
         }),
       })
 
@@ -146,8 +161,10 @@ export default function NewSurveyPage() {
             scaleMax: question.type === 'scale' ? (question.scaleMax || 10) : undefined,
             scaleMinLabel: question.scaleMinLabel,
             scaleMaxLabel: question.scaleMaxLabel,
-            choices: question.type === 'choice' ? question.choices : undefined,
+            choices: question.type === 'choice' || question.type === 'multi_select' ? question.choices : undefined,
+            logicJson: question.logicJson,
             orderIndex: index,
+            id: question.id, // Pass client-side ID to use for branching
           }),
         })
 
@@ -184,7 +201,7 @@ export default function NewSurveyPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Create New Survey</h1>
+          <h1 className="text-3xl font-bold">{name || 'New Survey'}</h1>
           <p className="text-muted-foreground">Build your survey step by step</p>
         </div>
       </div>
@@ -203,8 +220,18 @@ export default function NewSurveyPage() {
                 <Input
                   id="name"
                   placeholder="e.g., Patient Satisfaction Survey"
-                  value={surveyName}
-                  onChange={(e) => setSurveyName(e.target.value)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="title">Survey Title</Label>
+                <Input
+                  id="title"
+                  placeholder="e.g., Patient Satisfaction Survey"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
 
@@ -213,23 +240,23 @@ export default function NewSurveyPage() {
                 <Textarea
                   id="description"
                   placeholder="What is this survey about?"
-                  value={surveyDescription}
-                  onChange={(e) => setSurveyDescription(e.target.value)}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Survey Type</Label>
-                <Select value={surveyType} onValueChange={setSurveyType}>
+                <Label htmlFor="language">Language</Label>
+                <Select value={language} onValueChange={setLanguage}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="appointment_follow_up">Appointment Follow-up</SelectItem>
-                    <SelectItem value="pulse_check">Pulse Check</SelectItem>
-                    <SelectItem value="post_emergency">Post Emergency</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Spanish</SelectItem>
+                    <SelectItem value="fr">French</SelectItem>
+                    <SelectItem value="de">German</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -246,13 +273,38 @@ export default function NewSurveyPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="questionText">Question Text *</Label>
-                <Textarea
-                  id="questionText"
-                  placeholder="e.g., How would you rate your overall experience?"
-                  value={newQuestion.text || ''}
-                  onChange={(e) => setNewQuestion({ ...newQuestion, text: e.target.value })}
-                  rows={2}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="questionText"
+                    placeholder="e.g., How would you rate your overall experience?"
+                    value={newQuestion.text || ''}
+                    onChange={(e) => setNewQuestion({ ...newQuestion, text: e.target.value })}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    title="Translate with AI"
+                    onClick={async () => {
+                      if (!newQuestion.text) return
+                      try {
+                        const res = await fetch('/api/translate', {
+                          method: 'POST',
+                          body: JSON.stringify({ text: newQuestion.text, targetLanguage: language })
+                        })
+                        const data = await res.json()
+                        if (data.translatedText) {
+                          setNewQuestion({ ...newQuestion, text: data.translatedText })
+                        }
+                      } catch (err) {
+                        console.error('Translation failed')
+                      }
+                    }}
+                  >
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -269,7 +321,9 @@ export default function NewSurveyPage() {
                   <SelectContent>
                     <SelectItem value="text">Text (Open-ended)</SelectItem>
                     <SelectItem value="scale">Scale (1-10 Slider)</SelectItem>
-                    <SelectItem value="choice">Multiple Choice</SelectItem>
+                    <SelectItem value="rating">Rating (Star Rating)</SelectItem>
+                    <SelectItem value="choice">Multiple Choice (Single)</SelectItem>
+                    <SelectItem value="multi_select">Multiple Choice (Multiple)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -323,7 +377,7 @@ export default function NewSurveyPage() {
                 </div>
               )}
 
-              {newQuestion.type === 'choice' && (
+              {(newQuestion.type === 'choice' || newQuestion.type === 'multi_select') && (
                 <div className="space-y-2">
                   <Label htmlFor="choices">Choices (one per line)</Label>
                   <Textarea
@@ -345,14 +399,132 @@ export default function NewSurveyPage() {
                 <Checkbox
                   id="required"
                   checked={newQuestion.required ?? true}
-                  onCheckedChange={(checked) =>
-                    setNewQuestion({ ...newQuestion, required: checked as boolean })
+                  onCheckedChange={(checked: boolean) =>
+                    setNewQuestion({ ...newQuestion, required: checked })
                   }
                 />
                 <Label htmlFor="required" className="font-normal">
                   Required question
                 </Label>
               </div>
+
+              {/* Logic Builder */}
+              {(newQuestion.type === 'choice' || newQuestion.type === 'scale' || newQuestion.type === 'rating') && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">Branching Logic</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newRule: LogicRule = {
+                          id: crypto.randomUUID(),
+                          condition: 'equals',
+                          value: '',
+                          goTo: ''
+                        }
+                        setNewQuestion({
+                          ...newQuestion,
+                          logicJson: {
+                            rules: [...(newQuestion.logicJson?.rules || []), newRule]
+                          }
+                        })
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Add Rule
+                    </Button>
+                  </div>
+
+                  {newQuestion.logicJson?.rules.map((rule, idx) => (
+                    <div key={rule.id} className="grid grid-cols-12 gap-2 items-end bg-muted/30 p-3 rounded-lg border border-dashed">
+                      <div className="col-span-3 space-y-1">
+                        <Label className="text-[10px] uppercase text-muted-foreground">If Answer</Label>
+                        <Select
+                          value={rule.condition}
+                          onValueChange={(val: any) => {
+                            const rules = [...(newQuestion.logicJson?.rules || [])]
+                            rules[idx].condition = val
+                            setNewQuestion({ ...newQuestion, logicJson: { rules } })
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="equals">Equals</SelectItem>
+                            <SelectItem value="not_equals">Not equals</SelectItem>
+                            {newQuestion.type !== 'choice' && (
+                              <>
+                                <SelectItem value="greater_than">Greater than</SelectItem>
+                                <SelectItem value="less_than">Less than</SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="col-span-3 space-y-1">
+                        <Label className="text-[10px] uppercase text-muted-foreground">Value</Label>
+                        <Input
+                          className="h-8 text-xs"
+                          value={rule.value}
+                          onChange={(e) => {
+                            const rules = [...(newQuestion.logicJson?.rules || [])]
+                            rules[idx].value = e.target.value
+                            setNewQuestion({ ...newQuestion, logicJson: { rules } })
+                          }}
+                        />
+                      </div>
+
+                      <div className="col-span-5 space-y-1">
+                        <Label className="text-[10px] uppercase text-muted-foreground">Go To</Label>
+                        <Select
+                          value={rule.goTo}
+                          onValueChange={(val) => {
+                            const rules = [...(newQuestion.logicJson?.rules || [])]
+                            rules[idx].goTo = val
+                            setNewQuestion({ ...newQuestion, logicJson: { rules } })
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Next question" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="end">End of Survey</SelectItem>
+                            {questions.filter(q => q.id !== newQuestion.id).map((q, i) => (
+                              <SelectItem key={q.id} value={q.id}>
+                                Q{i + 1}: {q.text.substring(0, 30)}...
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="col-span-1 pb-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive"
+                          onClick={() => {
+                            const rules = newQuestion.logicJson?.rules.filter(r => r.id !== rule.id) || []
+                            setNewQuestion({ ...newQuestion, logicJson: { rules } })
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {(!newQuestion.logicJson?.rules || newQuestion.logicJson.rules.length === 0) && (
+                    <p className="text-[10px] text-center text-muted-foreground italic">
+                      No logic rules defined. This question will follow the default order.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <Button onClick={addQuestion} className="w-full">
                 <Plus className="mr-2 h-4 w-4" />
@@ -408,13 +580,18 @@ export default function NewSurveyPage() {
                                     Required
                                   </span>
                                 )}
+                                {question.logicJson && question.logicJson.rules.length > 0 && (
+                                  <span className="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded">
+                                    {question.logicJson.rules.length} logic rules
+                                  </span>
+                                )}
                               </div>
                               {question.type === 'scale' && (
                                 <p className="text-xs text-muted-foreground mt-1">
                                   Scale: {question.scaleMin || 1} - {question.scaleMax || 10}
                                 </p>
                               )}
-                              {question.type === 'choice' && question.choices && (
+                              {(question.type === 'choice' || question.type === 'multi_select') && question.choices && (
                                 <p className="text-xs text-muted-foreground mt-1">
                                   {question.choices.length} choices
                                 </p>

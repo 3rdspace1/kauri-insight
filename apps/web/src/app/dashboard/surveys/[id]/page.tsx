@@ -1,14 +1,17 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@kauri/db/client'
-import { surveys, questions, responses, responseItems } from '@kauri/db/schema'
-import { eq, count } from 'drizzle-orm'
+import { surveys, questions, responses, responseItems, insights as insightsTable } from '@kauri/db/schema'
+import { eq, count, desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, BarChart3, FileText, Share2 } from 'lucide-react'
+import { ArrowLeft, BarChart3, FileText, Share2, Brain, CheckCircle2, AlertTriangle, Info, ListTodo } from 'lucide-react'
 import Link from 'next/link'
 import { DeleteSurveyButton } from '@/components/surveys/DeleteSurveyButton'
+import { PublishSurveyButton } from '@/components/surveys/PublishSurveyButton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { KanbanBoard } from '@/components/actions/KanbanBoard'
 
 export default async function SurveyDetailPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -52,6 +55,13 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
     ? Math.round((completedResponses / totalResponses) * 100)
     : 0
 
+  // Get top insights
+  const insights = await db.query.insights.findMany({
+    where: eq(insightsTable.surveyId, params.id),
+    limit: 3,
+    orderBy: [desc(insightsTable.createdAt)],
+  })
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -71,6 +81,9 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
           </div>
         </div>
         <div className="flex gap-2">
+          {survey.status === 'draft' && (
+            <PublishSurveyButton surveyId={params.id} />
+          )}
           <DeleteSurveyButton surveyId={params.id} surveyName={survey.name} />
           <Button variant="outline">
             <Share2 className="mr-2 h-4 w-4" />
@@ -127,42 +140,42 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
         </Card>
       </div>
 
-      {/* Questions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Questions</CardTitle>
-          <CardDescription>
-            Review the questions in this survey
-          </CardDescription>
+      {/* Insights Summary */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              AI Insights Summary
+            </CardTitle>
+            <CardDescription>
+              Key findings from {totalResponses} responses
+            </CardDescription>
+          </div>
+          <Link href={`/dashboard/surveys/${params.id}/insights`}>
+            <Button variant="outline" size="sm">Full Analysis</Button>
+          </Link>
         </CardHeader>
         <CardContent>
-          {survey.questions.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              No questions added yet
+          {insights.length === 0 ? (
+            <div className="py-4 text-center text-muted-foreground">
+              {totalResponses < 5
+                ? "Collect 5 responses to unlock AI insights automatically."
+                : "No insights generated yet. Click 'View Insights' to trigger manual analysis."}
             </div>
           ) : (
-            <div className="space-y-4">
-              {survey.questions.map((question, index) => (
-                <div
-                  key={question.id}
-                  className="rounded-lg border p-4"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{question.text}</h4>
-                      <div className="mt-1 flex gap-2 text-sm text-muted-foreground">
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                          {question.kind}
-                        </span>
-                        {question.kind === 'scale' && question.scaleMin && question.scaleMax && (
-                          <span className="text-xs">
-                            Scale: {question.scaleMin} - {question.scaleMax}
-                          </span>
-                        )}
-                      </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {insights.map((insight) => (
+                <div key={insight.id} className="rounded-lg bg-background p-4 shadow-sm border">
+                  <div className="flex items-start gap-3">
+                    {insight.sentiment === 'positive' && <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />}
+                    {insight.sentiment === 'negative' && <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />}
+                    {insight.sentiment === 'neutral' && <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />}
+                    <div>
+                      <h4 className="font-semibold text-sm line-clamp-1">{insight.title}</h4>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {insight.summary}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -172,25 +185,90 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
         </CardContent>
       </Card>
 
-      {/* Survey Link */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Survey Link</CardTitle>
-          <CardDescription>
-            Share this link with respondents
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded bg-muted px-3 py-2 text-sm">
-              {typeof window !== 'undefined' ? window.location.origin : ''}/runtime/{params.id}
-            </code>
-            <Button variant="outline" size="sm">
-              Copy
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Survey Links & Content Tabs */}
+      <Tabs defaultValue="questions" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+          <TabsTrigger value="questions" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Questions
+          </TabsTrigger>
+          <TabsTrigger value="actions" className="flex items-center gap-2">
+            <ListTodo className="h-4 w-4" />
+            Actions
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="questions" className="space-y-6 pt-4">
+          {/* Questions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Questions</CardTitle>
+              <CardDescription>
+                Review the questions in this survey
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {survey.questions.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  No questions added yet
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {survey.questions.map((question, index) => (
+                    <div
+                      key={question.id}
+                      className="rounded-lg border p-4"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">{question.text}</h4>
+                          <div className="mt-1 flex gap-2 text-sm text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                              {question.kind}
+                            </span>
+                            {question.kind === 'scale' && question.scaleMin && question.scaleMax && (
+                              <span className="text-xs">
+                                Scale: {question.scaleMin} - {question.scaleMax}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Survey Link */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Survey Link</CardTitle>
+              <CardDescription>
+                Share this link with respondents
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded bg-muted px-3 py-2 text-sm">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/runtime/{params.id}
+                </code>
+                <Button variant="outline" size="sm">
+                  Copy
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="actions" className="pt-4">
+          <KanbanBoard surveyId={params.id} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

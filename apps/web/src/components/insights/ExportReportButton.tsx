@@ -1,19 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, FileText, Presentation } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
+import { FileDown, Loader2, Sparkles } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 
 interface ExportReportButtonProps {
@@ -23,114 +12,68 @@ interface ExportReportButtonProps {
 }
 
 export function ExportReportButton({ surveyId, surveyName, insightCount }: ExportReportButtonProps) {
+  const [isGenerating, setIsGenerating] = useState(false)
   const { toast } = useToast()
-  const [isExporting, setIsExporting] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
 
-  const handleExport = async (format: 'pdf' | 'pptx') => {
-    setIsExporting(true)
+  const handleExport = async () => {
+    if (insightCount === 0) {
+      toast({
+        title: 'No insights yet',
+        description: 'Generate some insights first to create an executive report.',
+        variant: 'destructive',
+      })
+      return
+    }
 
+    setIsGenerating(true)
     try {
-      const response = await fetch(`/api/reports/${surveyId}/export?format=${format}`, {
+      // 1. Generate/Fetch the report
+      const res = await fetch(`/api/surveys/${surveyId}/reports`, {
         method: 'POST',
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Export failed')
-      }
+      if (!res.ok) throw new Error('Failed to generate report')
+      const { report } = await res.json()
 
-      // Download the file
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `survey-report-${surveyId}.${format}`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
+      // 2. Trigger PDF download
       toast({
-        title: 'Success!',
-        description: `Report exported as ${format.toUpperCase()}`,
+        title: 'Generating PDF...',
+        description: 'This may take a few seconds as we prepare your executive summary.',
       })
 
-      setIsOpen(false)
-    } catch (error: any) {
+      // We open this in a new tab to trigger the download
+      window.open(`/api/reports/${report.id}/export`, '_blank')
+
+    } catch (err) {
+      console.error('Export error:', err)
       toast({
         title: 'Export Failed',
-        description: error.message || 'Failed to export report',
+        description: 'There was an error generating your PDF report.',
         variant: 'destructive',
       })
     } finally {
-      setIsExporting(false)
+      setIsGenerating(false)
     }
   }
 
-  if (insightCount === 0) {
-    return (
-      <Button variant="outline" disabled>
-        <Download className="mr-2 h-4 w-4" />
-        Export Report
-      </Button>
-    )
-  }
-
   return (
-    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Export Report
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Export Report</AlertDialogTitle>
-          <AlertDialogDescription>
-            Choose your preferred format to download a comprehensive report for{' '}
-            <span className="font-semibold">&quot;{surveyName}&quot;</span>
-            <br />
-            <br />
-            The report includes all {insightCount} insights, sentiment analysis, key metrics, and recommendations.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="grid grid-cols-2 gap-4 py-4">
-          <Button
-            onClick={() => handleExport('pdf')}
-            disabled={isExporting}
-            variant="outline"
-            className="h-24 flex flex-col items-center justify-center gap-2"
-          >
-            <FileText className="h-8 w-8" />
-            <span className="font-semibold">PDF Report</span>
-            <span className="text-xs text-muted-foreground">
-              Professional document
-            </span>
-          </Button>
-          <Button
-            onClick={() => handleExport('pptx')}
-            disabled={isExporting}
-            variant="outline"
-            className="h-24 flex flex-col items-center justify-center gap-2"
-          >
-            <Presentation className="h-8 w-8" />
-            <span className="font-semibold">PowerPoint</span>
-            <span className="text-xs text-muted-foreground">
-              Presentation slides
-            </span>
-          </Button>
-        </div>
-        {isExporting && (
-          <p className="text-sm text-center text-muted-foreground">
-            Generating report, please wait...
-          </p>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isExporting}>Cancel</AlertDialogCancel>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Button
+      onClick={handleExport}
+      disabled={isGenerating}
+      variant="outline"
+      className="bg-primary/5 border-primary/20 hover:bg-primary/10"
+    >
+      {isGenerating ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Preparing Report...
+        </>
+      ) : (
+        <>
+          <FileDown className="mr-2 h-4 w-4" />
+          Export Executive PDF
+        </>
+      )}
+    </Button>
   )
 }

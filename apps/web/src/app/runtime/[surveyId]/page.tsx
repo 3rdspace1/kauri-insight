@@ -9,10 +9,17 @@ import { ThankYou } from '@/components/runtime/ThankYou'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
+interface LogicRule {
+  id: string
+  condition: 'equals' | 'not_equals' | 'greater_than' | 'less_than'
+  value: string | number
+  goTo: string // Target question ID or 'end'
+}
+
 interface Question {
   id: string
   text: string
-  type: 'scale' | 'text' | 'choice'
+  type: 'scale' | 'text' | 'choice' | 'multi_select' | 'rating'
   required: boolean
   scaleMin?: number | null
   scaleMax?: number | null
@@ -20,6 +27,9 @@ interface Question {
   scaleMaxLabel?: string | null
   choices?: string[] | null
   orderIndex: number
+  logicJson?: {
+    rules: LogicRule[]
+  } | null
 }
 
 interface Survey {
@@ -39,7 +49,8 @@ export default function RuntimeSurveyPage() {
   const [survey, setSurvey] = useState<Survey | null>(null)
   const [responseId, setResponseId] = useState<string | null>(null)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [answers, setAnswers] = useState<Record<string, number | string>>({})
+  const [navigationStack, setNavigationStack] = useState<number[]>([0])
+  const [answers, setAnswers] = useState<Record<string, any>>({})
   const [showError, setShowError] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -100,7 +111,7 @@ export default function RuntimeSurveyPage() {
   }
 
   // Save answer to API
-  const saveAnswer = async (questionId: string, value: number | string) => {
+  const saveAnswer = async (questionId: string, value: any) => {
     if (!responseId) return
 
     const question = survey?.questions.find((q) => q.id === questionId)
@@ -109,12 +120,14 @@ export default function RuntimeSurveyPage() {
     try {
       const payload: any = { questionId }
 
-      if (question.type === 'scale') {
+      if (question.type === 'scale' || question.type === 'rating') {
         payload.valueScale = value
       } else if (question.type === 'text') {
         payload.valueText = value
       } else if (question.type === 'choice') {
         payload.valueChoice = value
+      } else if (question.type === 'multi_select') {
+        payload.valueChoice = Array.isArray(value) ? value.join(',') : value
       }
 
       const res = await fetch(`/api/responses/${responseId}/items`, {
@@ -132,6 +145,35 @@ export default function RuntimeSurveyPage() {
     }
   }
 
+  const evaluateLogic = (question: Question, answer: any): string | null => {
+    if (!question.logicJson || !question.logicJson.rules) return null
+
+    for (const rule of question.logicJson.rules) {
+      let isMatch = false
+      const ruleValue = rule.value.toString()
+      const answerValue = (answer ?? '').toString()
+
+      switch (rule.condition) {
+        case 'equals':
+          isMatch = answerValue === ruleValue
+          break
+        case 'not_equals':
+          isMatch = answerValue !== ruleValue
+          break
+        case 'greater_than':
+          isMatch = Number(answerValue) > Number(ruleValue)
+          break
+        case 'less_than':
+          isMatch = Number(answerValue) < Number(ruleValue)
+          break
+      }
+
+      if (isMatch) return rule.goTo
+    }
+
+    return null
+  }
+
   // Handle next question
   const handleNext = async () => {
     if (!survey) return
@@ -140,7 +182,8 @@ export default function RuntimeSurveyPage() {
     const answer = answers[currentQuestion.id]
 
     // Validate required
-    if (currentQuestion.required && (answer === undefined || answer === '')) {
+    const isEmpty = answer === undefined || answer === '' || (Array.isArray(answer) && answer.length === 0)
+    if (currentQuestion.required && isEmpty) {
       setShowError(true)
       return
     }
@@ -150,19 +193,41 @@ export default function RuntimeSurveyPage() {
       await saveAnswer(currentQuestion.id, answer)
     }
 
-    // Check if last question
-    if (currentQuestionIndex === survey.questions.length - 1) {
+    // Evaluate Branching Logic
+    const goTo = evaluateLogic(currentQuestion, answer)
+
+    if (goTo === 'end') {
       await completeResponse()
-    } else {
-      setCurrentQuestionIndex((prev) => prev + 1)
-      setShowError(false)
+      return
     }
+
+    let nextIndex = -1
+    if (goTo) {
+      nextIndex = survey.questions.findIndex(q => q.id === goTo)
+    }
+
+    // Fallback to next in list if no logic or target not found
+    if (nextIndex === -1) {
+      if (currentQuestionIndex === survey.questions.length - 1) {
+        await completeResponse()
+        return
+      }
+      nextIndex = currentQuestionIndex + 1
+    }
+
+    setNavigationStack(prev => [...prev, nextIndex])
+    setCurrentQuestionIndex(nextIndex)
+    setShowError(false)
   }
 
   // Handle previous question
   const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex((prev) => prev - 1)
+    if (navigationStack.length > 1) {
+      const newStack = [...navigationStack]
+      newStack.pop() // Remove current
+      const previousIndex = newStack[newStack.length - 1]
+      setNavigationStack(newStack)
+      setCurrentQuestionIndex(previousIndex)
       setShowError(false)
     }
   }
@@ -225,8 +290,8 @@ export default function RuntimeSurveyPage() {
     const currentQuestion = survey.questions[currentQuestionIndex]
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full">
+      <div className="min-h-screen flex items-center justify-center bg-background/50 backdrop-blur-sm p-4">
+        <div className="w-full max-w-4xl">
           <ProgressBar
             current={currentQuestionIndex + 1}
             total={survey.questions.length}

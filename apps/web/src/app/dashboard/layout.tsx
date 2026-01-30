@@ -17,9 +17,9 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-slate-50/50 dark:bg-slate-950/50">
       {/* Sidebar */}
-      <aside className="hidden w-64 border-r bg-muted/50 md:block">
+      <aside className="hidden w-64 border-r glass border-white/10 md:block">
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center border-b px-6">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">

@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { db } from '@kauri/db/client'
-import { responses, responseItems } from '@kauri/db/schema'
-import { eq } from 'drizzle-orm'
+import { responses, responseItems, surveys, insights as insightsTable } from '@kauri/db/schema'
+import { eq, count, and } from 'drizzle-orm'
+import { generateSurveyInsights } from '@kauri/ai/insights'
+import type { InsightPayload } from '@kauri/shared/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,9 +72,80 @@ export async function POST(
       .where(eq(responses.id, params.id))
       .returning()
 
+    // --- AI INSIGHTS TRIGGER ---
+    // Count total completed responses for this survey
+    const surveyId = response.surveyId
+    const completedCountResult = await db
+      .select({ count: count() })
+      .from(responses)
+      .where(
+        and(
+          eq(responses.surveyId, surveyId),
+          eq(responses.status, 'completed')
+        )
+      )
+    
+    const completedCount = completedCountResult[0]?.count || 0
+
+    // Trigger AI analysis every 5 responses
+    if (completedCount > 0 && completedCount % 5 === 0) {
+      console.log(`🤖 Auto-triggering AI analysis for survey ${surveyId} (Total: ${completedCount})`)
+      
+      try {
+        // Fetch all responses with items for analysis
+        const surveyResponses = await db.query.responses.findMany({
+          where: eq(responses.surveyId, surveyId),
+          with: {
+            items: {
+              with: {
+                question: true,
+              },
+            },
+          },
+        })
+
+        // Prepare payload for AI
+        const payload: InsightPayload = {
+          surveyId,
+          responses: surveyResponses.map((r) => ({
+            id: r.id,
+            items: r.items.map((item) => ({
+              questionId: item.questionId,
+              questionText: item.question.text,
+              valueText: item.valueText || undefined,
+              valueNum: item.valueNum || undefined,
+              valueChoice: item.valueChoice || undefined,
+            })),
+          })),
+        }
+
+        // Generate insights
+        const result = await generateSurveyInsights(payload)
+
+        // Save insights to database
+        for (const insight of result.insights) {
+          await db
+            .insert(insightsTable)
+            .values({
+              surveyId,
+              title: insight.title,
+              summary: insight.summary,
+              sentiment: insight.sentiment,
+              evidenceJson: insight.evidence,
+            })
+        }
+        console.log(`✅ Auto-analysis complete for survey ${surveyId}`)
+      } catch (aiError) {
+        console.error('Failed to auto-trigger AI analysis:', aiError)
+        // Don't fail the response completion if AI fails
+      }
+    }
+    // --- END AI TRIGGER ---
+
     return NextResponse.json({
       success: true,
       response: updatedResponse,
+      aiTriggered: completedCount % 5 === 0,
     })
   } catch (error) {
     console.error('Error completing response:', error)

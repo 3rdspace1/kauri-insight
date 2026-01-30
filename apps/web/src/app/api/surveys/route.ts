@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         title: validated.name, // Use name as title for now
         type: validated.type || null,
         status: validated.status,
+        language: validated.language,
       })
       .returning()
 
