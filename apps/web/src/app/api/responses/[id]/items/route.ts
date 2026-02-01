@@ -42,7 +42,7 @@ export async function POST(
 
     // Check if item already exists for this question
     const existingItem = await db.query.responseItems.findFirst({
-      where: (items, { and, eq }) =>
+      where: (items: any, { and, eq }: any) =>
         and(
           eq(items.responseId, params.id),
           eq(items.questionId, validated.questionId)

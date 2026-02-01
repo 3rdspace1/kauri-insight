@@ -15,7 +15,7 @@ export async function GET(
       where: eq(surveys.id, params.surveyId),
       with: {
         questions: {
-          orderBy: (questions, { asc }) => [asc(questions.orderIndex)],
+          orderBy: (questions: any, { asc }: any) => [asc(questions.orderIndex)],
           with: {
             rules: true,
           },
@@ -43,7 +43,7 @@ export async function GET(
       id: survey.id,
       title: survey.title,
       description: survey.description,
-      questions: survey.questions.map((q) => ({
+      questions: survey.questions.map((q: any) => ({
         id: q.id,
         text: q.text,
         type: q.type,

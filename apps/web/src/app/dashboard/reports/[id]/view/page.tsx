@@ -8,7 +8,7 @@ export default async function ReportViewPage({ params }: { params: { id: string 
         where: eq(reports.id, params.id),
         with: {
             sections: {
-                orderBy: (sections, { asc }) => [asc(sections.orderIndex)],
+                orderBy: (sections: any, { asc }: any) => [asc(sections.orderIndex)],
             },
             survey: true,
         },
@@ -50,13 +50,13 @@ export default async function ReportViewPage({ params }: { params: { id: string 
             </div>
 
             {/* Sections */}
-            {report.sections.map((section, index) => (
+            {report.sections.map((section: any, index: number) => (
                 <div key={section.id} className="mb-12 break-inside-avoid">
                     <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">
                         {index + 2}. {section.title}
                     </h2>
                     <div className="text-lg leading-relaxed text-slate-800 space-y-4">
-                        {section.content.split('\n').map((para, i) => (
+                        {section.content.split('\n').map((para: string, i: number) => (
                             para ? <p key={i}>{para}</p> : <br key={i} />
                         ))}
                     </div>

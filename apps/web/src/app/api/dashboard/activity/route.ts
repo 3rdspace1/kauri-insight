@@ -34,21 +34,21 @@ export async function GET() {
 
         // Transform into unified feed
         const feed = [
-            ...latestResponses.map(r => ({
+            ...latestResponses.map((r: any) => ({
                 id: `r-${r.id}`,
                 type: 'response' as const,
                 text: 'New response received',
                 timestamp: r.createdAt.toISOString(),
                 surveyName: r.survey.name,
             })),
-            ...latestInsights.map(i => ({
+            ...latestInsights.map((i: any) => ({
                 id: `i-${i.id}`,
                 type: 'insight' as const,
                 text: `New Insight: ${i.title}`,
                 timestamp: i.createdAt.toISOString(),
                 surveyName: i.survey.name,
             })),
-            ...latestActions.map(a => ({
+            ...latestActions.map((a: any) => ({
                 id: `a-${a.id}`,
                 type: 'action' as const,
                 text: `Action Required: ${a.title}`,

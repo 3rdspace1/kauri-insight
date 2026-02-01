@@ -52,7 +52,7 @@ export async function POST(
     // Get current max order index
     const existingQuestions = await db.query.questions.findMany({
       where: eq(questions.surveyId, params.id),
-      orderBy: (questions, { desc }) => [desc(questions.orderIndex)],
+      orderBy: (questions: any, { desc }: any) => [desc(questions.orderIndex)],
     })
 
     const nextOrderIndex = existingQuestions.length > 0

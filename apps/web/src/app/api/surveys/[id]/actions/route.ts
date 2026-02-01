@@ -35,7 +35,7 @@ export async function GET(
 
         const surveyActions = await db.query.actions.findMany({
             where: eq(actions.surveyId, surveyId),
-            orderBy: (actions, { desc }) => [desc(actions.createdAt)],
+            orderBy: (actions: any, { desc }: any) => [desc(actions.createdAt)],
         })
 
         return createSuccessResponse(surveyActions)

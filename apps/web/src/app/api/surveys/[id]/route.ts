@@ -34,7 +34,7 @@ export async function GET(
       ),
       with: {
         questions: {
-          orderBy: (questions, { asc }) => [asc(questions.orderIndex)],
+          orderBy: (questions: any, { asc }: any) => [asc(questions.orderIndex)],
           with: {
             rules: true,
           },

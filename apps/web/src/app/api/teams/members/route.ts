@@ -27,7 +27,7 @@ export async function GET() {
                 eq(invitations.tenantId, session.tenantId),
                 eq(invitations.status, 'pending')
             ),
-            orderBy: (invitations, { desc }) => [desc(invitations.createdAt)],
+            orderBy: (invitations: any, { desc }: any) => [desc(invitations.createdAt)],
         })
 
         return NextResponse.json({

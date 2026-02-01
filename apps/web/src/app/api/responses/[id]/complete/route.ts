@@ -41,19 +41,19 @@ export async function POST(
 
     // Validate all required questions are answered
     const requiredQuestions = response.survey.questions.filter(
-      (q) => q.required
+      (q: any) => q.required
     )
-    const answeredQuestionIds = response.items.map((item) => item.questionId)
+    const answeredQuestionIds = response.items.map((item: any) => item.questionId)
 
     const missingRequired = requiredQuestions.filter(
-      (q) => !answeredQuestionIds.includes(q.id)
+      (q: any) => !answeredQuestionIds.includes(q.id)
     )
 
     if (missingRequired.length > 0) {
       return NextResponse.json(
         {
           error: 'Missing required questions',
-          missingQuestions: missingRequired.map((q) => ({
+          missingQuestions: missingRequired.map((q: any) => ({
             id: q.id,
             text: q.text,
           })),
@@ -84,13 +84,13 @@ export async function POST(
           eq(responses.status, 'completed')
         )
       )
-    
+
     const completedCount = completedCountResult[0]?.count || 0
 
     // Trigger AI analysis every 5 responses
     if (completedCount > 0 && completedCount % 5 === 0) {
       console.log(`🤖 Auto-triggering AI analysis for survey ${surveyId} (Total: ${completedCount})`)
-      
+
       try {
         // Fetch all responses with items for analysis
         const surveyResponses = await db.query.responses.findMany({
@@ -107,9 +107,9 @@ export async function POST(
         // Prepare payload for AI
         const payload: InsightPayload = {
           surveyId,
-          responses: surveyResponses.map((r) => ({
+          responses: surveyResponses.map((r: any) => ({
             id: r.id,
-            items: r.items.map((item) => ({
+            items: r.items.map((item: any) => ({
               questionId: item.questionId,
               questionText: item.question.text,
               valueText: item.valueText || undefined,

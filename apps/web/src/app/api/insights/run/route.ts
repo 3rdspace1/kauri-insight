@@ -54,9 +54,9 @@ export async function POST(request: NextRequest) {
     // Prepare payload for AI
     const payload: InsightPayload = {
       surveyId,
-      responses: surveyResponses.map((r) => ({
+      responses: surveyResponses.map((r: any) => ({
         id: r.id,
-        items: r.items.map((item) => ({
+        items: r.items.map((item: any) => ({
           questionId: item.questionId,
           questionText: item.question.text,
           valueText: item.valueText || undefined,
