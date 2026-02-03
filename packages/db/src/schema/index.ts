@@ -24,7 +24,7 @@ export const accounts = pgTable('account', {
   scope: varchar('scope', { length: 255 }),
   id_token: text('id_token'),
   session_state: varchar('session_state', { length: 255 }),
-}, (table) => ({
+}, (table: any) => ({
   compoundKey: primaryKey({ columns: [table.provider, table.providerAccountId] }),
 }))
 
@@ -38,7 +38,7 @@ export const verificationTokens = pgTable('verificationToken', {
   identifier: varchar('identifier', { length: 255 }).notNull(),
   token: varchar('token', { length: 255 }).notNull(),
   expires: timestamp('expires').notNull(),
-}, (table) => ({
+}, (table: any) => ({
   compoundKey: primaryKey({ columns: [table.identifier, table.token] }),
 }))
 
@@ -62,7 +62,7 @@ export const memberships = pgTable('memberships', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: varchar('role', { length: 50 }).notNull().default('viewer'), // owner, staff, viewer
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   tenantIdx: index('memberships_tenant_idx').on(table.tenantId),
   userIdx: index('memberships_user_idx').on(table.userId),
 }))
@@ -79,7 +79,7 @@ export const surveys = pgTable('surveys', {
   version: integer('version').notNull().default(1),
   language: varchar('language', { length: 10 }).notNull().default('en'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   tenantCreatedIdx: index('surveys_tenant_created_idx').on(table.tenantId, table.createdAt),
 }))
 
@@ -98,10 +98,9 @@ export const questions = pgTable('questions', {
   choicesJson: jsonb('choices_json'), // Array of choice options (legacy)
   prefill: text('prefill'), // AI-suggested question context
   logicJson: jsonb('logic_json'), // Branching logic: { rules: [{ condition: 'equals', value: 'X', goTo: 'uuid' }] }
-  order: integer('order').notNull().default(0),
   orderIndex: integer('order_index').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   surveyIdx: index('questions_survey_idx').on(table.surveyId),
 }))
 
@@ -111,7 +110,7 @@ export const questionRules = pgTable('question_rules', {
   questionId: uuid('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
   rulesJson: jsonb('rules_json').notNull(), // { trigger: {}, probe: '', action: '' }
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   surveyQuestionIdx: index('question_rules_survey_question_idx').on(table.surveyId, table.questionId),
 }))
 
@@ -123,7 +122,7 @@ export const profiles = pgTable('profiles', {
   name: varchar('name', { length: 255 }),
   consented: boolean('consented').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   tenantIdx: index('profiles_tenant_idx').on(table.tenantId),
 }))
 
@@ -145,7 +144,7 @@ export const responses = pgTable('responses', {
   status: varchar('status', { length: 50 }).notNull().default('in_progress'),
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   surveyCreatedIdx: index('responses_survey_created_idx').on(table.surveyId, table.createdAt),
 }))
 
@@ -158,7 +157,7 @@ export const responseItems = pgTable('response_items', {
   valueScale: integer('value_scale'),
   valueChoice: varchar('value_choice', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   responseQuestionIdx: index('response_items_response_question_idx').on(table.responseId, table.questionId),
 }))
 
@@ -171,7 +170,7 @@ export const insights = pgTable('insights', {
   sentiment: varchar('sentiment', { length: 50 }), // positive, neutral, negative
   evidenceJson: jsonb('evidence_json'), // Array of evidence snippets with response IDs
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   surveyCreatedIdx: index('insights_survey_created_idx').on(table.surveyId, table.createdAt),
 }))
 
@@ -184,7 +183,7 @@ export const actions = pgTable('actions', {
   title: varchar('title', { length: 255 }).notNull(),
   payloadJson: jsonb('payload_json'), // Additional context
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   surveyStatusIdx: index('actions_survey_status_idx').on(table.surveyId, table.status),
 }))
 
@@ -196,7 +195,7 @@ export const sources = pgTable('sources', {
   locator: text('locator').notNull(), // URL or file reference
   contentJson: jsonb('content_json'), // Parsed content
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   tenantIdx: index('sources_tenant_idx').on(table.tenantId),
 }))
 
@@ -210,7 +209,7 @@ export const invitations = pgTable('invitations', {
   expiresAt: timestamp('expires_at').notNull(),
   invitedBy: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   tenantIdx: index('invitations_tenant_idx').on(table.tenantId),
   emailIdx: index('invitations_email_idx').on(table.email),
 }))
@@ -223,7 +222,7 @@ export const reports = pgTable('reports', {
   executiveSummary: text('executive_summary'),
   sectionsJson: jsonb('sections_json'), // Array of report sections
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, (table: any) => ({
   surveyIdx: index('reports_survey_idx').on(table.surveyId),
 }))
 
@@ -234,7 +233,7 @@ export const reportSections = pgTable('report_sections', {
   body: text('body').notNull(),
   metricsJson: jsonb('metrics_json'),
   chartRefs: jsonb('chart_refs'), // References to chart specs
-  order: integer('order').notNull().default(0),
+  orderIndex: integer('order_index').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
@@ -283,7 +282,7 @@ export const questionsRelations = relations(questions, ({ one, many }: any) => (
   responseItems: many(responseItems),
 }))
 
-export const questionRulesRelations = relations(questionRules, ({ one }) => ({
+export const questionRulesRelations = relations(questionRules, ({ one }: any) => ({
   survey: one(surveys, {
     fields: [questionRules.surveyId],
     references: [surveys.id],
@@ -294,7 +293,7 @@ export const questionRulesRelations = relations(questionRules, ({ one }) => ({
   }),
 }))
 
-export const profilesRelations = relations(profiles, ({ one, many }) => ({
+export const profilesRelations = relations(profiles, ({ one, many }: any) => ({
   tenant: one(tenants, {
     fields: [profiles.tenantId],
     references: [tenants.id],
@@ -315,7 +314,7 @@ export const responsesRelations = relations(responses, ({ one, many }: any) => (
   items: many(responseItems),
 }))
 
-export const responseItemsRelations = relations(responseItems, ({ one }) => ({
+export const responseItemsRelations = relations(responseItems, ({ one }: any) => ({
   response: one(responses, {
     fields: [responseItems.responseId],
     references: [responses.id],
@@ -362,7 +361,7 @@ export const reportSectionsRelations = relations(reportSections, ({ one }: any) 
   }),
 }))
 
-export const invitationsRelations = relations(invitations, ({ one }) => ({
+export const invitationsRelations = relations(invitations, ({ one }: any) => ({
   tenant: one(tenants, {
     fields: [invitations.tenantId],
     references: [tenants.id],
