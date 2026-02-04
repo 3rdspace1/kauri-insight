@@ -76,7 +76,6 @@ export async function POST(
         choices: validated.choices,
         logicJson: validated.logicJson,
         orderIndex: validated.orderIndex || nextOrderIndex,
-        order: validated.orderIndex || nextOrderIndex,
       })
       .returning()
 

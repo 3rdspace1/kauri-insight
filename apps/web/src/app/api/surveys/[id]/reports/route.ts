@@ -54,17 +54,17 @@ export async function POST(
                 surveyId: params.id,
                 tenantId: session.tenantId,
                 title: drafted.title || `${survey.name} - Executive Report`,
-                summary: drafted.executiveSummary,
+                executiveSummary: drafted.executiveSummary,
             })
             .returning()
 
         // Store sections
         if (drafted.sections && drafted.sections.length > 0) {
             await db.insert(reportSections).values(
-                drafted.sections.map((s, i) => ({
+                drafted.sections.map((s: any, i: number) => ({
                     reportId: report.id,
-                    title: s.heading,
-                    content: s.body,
+                    heading: s.heading,
+                    body: s.body,
                     orderIndex: i,
                 }))
             )

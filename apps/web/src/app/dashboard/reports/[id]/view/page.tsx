@@ -36,7 +36,7 @@ export default async function ReportViewPage({ params }: { params: { id: string 
             <div className="mb-10">
                 <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">1. Executive Summary</h2>
                 <div className="text-lg leading-relaxed text-slate-800">
-                    {report.summary}
+                    {report.executiveSummary}
                 </div>
             </div>
 
@@ -53,10 +53,10 @@ export default async function ReportViewPage({ params }: { params: { id: string 
             {report.sections.map((section: any, index: number) => (
                 <div key={section.id} className="mb-12 break-inside-avoid">
                     <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">
-                        {index + 2}. {section.title}
+                        {index + 2}. {section.heading}
                     </h2>
                     <div className="text-lg leading-relaxed text-slate-800 space-y-4">
-                        {section.content.split('\n').map((para: string, i: number) => (
+                        {section.body.split('\n').map((para: string, i: number) => (
                             para ? <p key={i}>{para}</p> : <br key={i} />
                         ))}
                     </div>
