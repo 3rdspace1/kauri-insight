@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       surveyId,
       responses: surveyResponses.map((r: any) => ({
         id: r.id,
-        items: r.items.map((item: any) => ({
+        items: (r.items as any[]).map((item: any) => ({
           questionId: item.questionId,
           questionText: item.question.text,
           valueText: item.valueText || undefined,

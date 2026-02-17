@@ -627,7 +627,7 @@ export default function NewSurveyPage() {
             <CardContent className="pt-6">
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !surveyName || questions.length === 0}
+                disabled={isSubmitting || !name || questions.length === 0}
                 className="w-full"
                 size="lg"
               >

@@ -43,14 +43,14 @@ export default async function ReportViewPage({ params }: { params: { id: string 
             {/* Survey Details */}
             <div className="mb-10 p-4 bg-slate-50 border rounded-lg">
                 <h3 className="text-sm font-semibold uppercase text-slate-500 mb-2">Survey Origin</h3>
-                <p className="text-lg font-medium">{report.survey.name}</p>
-                {report.survey.description && (
-                    <p className="text-sm text-slate-600 mt-1">{report.survey.description}</p>
+                <p className="text-lg font-medium">{(report.survey as any).name}</p>
+                {(report.survey as any).description && (
+                    <p className="text-sm text-slate-600 mt-1">{(report.survey as any).description}</p>
                 )}
             </div>
 
             {/* Sections */}
-            {report.sections.map((section: any, index: number) => (
+            {(report.sections as any[]).map((section: any, index: number) => (
                 <div key={section.id} className="mb-12 break-inside-avoid">
                     <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">
                         {index + 2}. {section.heading}

@@ -52,7 +52,6 @@ export async function POST(
             .insert(reports)
             .values({
                 surveyId: params.id,
-                tenantId: session.tenantId,
                 title: drafted.title || `${survey.name} - Executive Report`,
                 executiveSummary: drafted.executiveSummary,
             })

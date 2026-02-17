@@ -43,7 +43,7 @@ export async function GET(
       id: survey.id,
       title: survey.title,
       description: survey.description,
-      questions: survey.questions.map((q: any) => ({
+      questions: (survey.questions as any[]).map((q: any) => ({
         id: q.id,
         text: q.text,
         type: q.type,

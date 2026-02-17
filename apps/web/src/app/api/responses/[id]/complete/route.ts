@@ -40,10 +40,12 @@ export async function POST(
     }
 
     // Validate all required questions are answered
-    const requiredQuestions = response.survey.questions.filter(
+    const survey = response.survey as { questions: any[] }
+    const requiredQuestions = survey.questions.filter(
       (q: any) => q.required
     )
-    const answeredQuestionIds = response.items.map((item: any) => item.questionId)
+    const items = response.items as any[]
+    const answeredQuestionIds = items.map((item: any) => item.questionId)
 
     const missingRequired = requiredQuestions.filter(
       (q: any) => !answeredQuestionIds.includes(q.id)
@@ -109,7 +111,7 @@ export async function POST(
           surveyId,
           responses: surveyResponses.map((r: any) => ({
             id: r.id,
-            items: r.items.map((item: any) => ({
+            items: (r.items as any[]).map((item: any) => ({
               questionId: item.questionId,
               questionText: item.question.text,
               valueText: item.valueText || undefined,

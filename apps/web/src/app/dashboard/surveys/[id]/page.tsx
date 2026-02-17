@@ -47,8 +47,9 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
     },
   })
 
+  const surveyQuestions = survey.questions as any[]
   const completedResponses = allResponses.filter(
-    (r) => r.items.length === survey.questions.length
+    (r) => (r.items as any[]).length === surveyQuestions.length
   ).length
 
   const completionRate = totalResponses > 0
@@ -132,7 +133,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{survey.questions.length}</div>
+            <div className="text-2xl font-bold">{surveyQuestions.length}</div>
             <p className="text-xs text-muted-foreground">
               In this survey
             </p>
@@ -208,13 +209,13 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {survey.questions.length === 0 ? (
+              {surveyQuestions.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
                   No questions added yet
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {survey.questions.map((question, index) => (
+                  {surveyQuestions.map((question: any, index: number) => (
                     <div
                       key={question.id}
                       className="rounded-lg border p-4"

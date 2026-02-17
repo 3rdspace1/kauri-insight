@@ -72,9 +72,10 @@ export const authOptions: NextAuthOptions = {
           },
         })
 
-        if (userRecord && userRecord.memberships.length > 0) {
+        const memberships = userRecord?.memberships as any[] | undefined
+        if (userRecord && memberships && memberships.length > 0) {
           // Add first tenant to session (or implement tenant switching later)
-          const membership = userRecord.memberships[0]
+          const membership = memberships[0] as any
           session.tenantId = membership.tenant.id
           session.role = membership.role
         }

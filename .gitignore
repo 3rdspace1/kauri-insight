@@ -51,3 +51,9 @@ playwright/.cache/
 
 .vercel
 .env*.local
+
+# Temporary Claude Code files
+tmpclaude-*
+
+# Build error logs
+build-error*.log

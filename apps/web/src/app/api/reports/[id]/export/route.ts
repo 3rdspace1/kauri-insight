@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@kauri/db/client'
-import { reports } from '@kauri/db/schema'
+import { reports, surveys } from '@kauri/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { generatePDF } from '@/lib/pdf'
 
@@ -18,11 +18,14 @@ export async function GET(
         }
 
         const report = await db.query.reports.findFirst({
-            where: and(
-                eq(reports.id, params.id),
-                eq(reports.tenantId, session.tenantId)
-            ),
+            where: eq(reports.id, params.id),
+            with: { survey: true },
         })
+
+        const survey = report?.survey as { tenantId: string } | undefined
+        if (survey && survey.tenantId !== session.tenantId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+        }
 
         if (!report) {
             return NextResponse.json({ error: 'Report not found' }, { status: 404 })
