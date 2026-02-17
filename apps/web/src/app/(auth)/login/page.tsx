@@ -42,7 +42,7 @@ export default function LoginPage() {
             </div>
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
-              We've sent a magic link to <strong>{email}</strong>
+              We&apos;ve sent a magic link to <strong>{email}</strong>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -65,7 +65,7 @@ export default function LoginPage() {
           </Link>
           <CardTitle>Sign in to your account</CardTitle>
           <CardDescription>
-            Enter your email and we'll send you a magic link
+            Enter your email and we&apos;ll send you a magic link
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -87,7 +87,7 @@ export default function LoginPage() {
             </Button>
           </form>
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/login" className="text-primary hover:underline">
               Sign up is automatic
             </Link>

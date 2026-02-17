@@ -50,7 +50,7 @@ export function ConsentForm({ surveyTitle, onSubmit }: ConsentFormProps) {
       <CardHeader>
         <CardTitle className="text-2xl">{surveyTitle}</CardTitle>
         <CardDescription>
-          We'd love to hear your feedback. This should take about 2-3 minutes.
+          We&apos;d love to hear your feedback. This should take about 2-3 minutes.
         </CardDescription>
       </CardHeader>
       <CardContent>

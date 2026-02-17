@@ -143,7 +143,7 @@ export default async function InsightsPage({ params }: { params: { id: string } 
             <h3 className="mb-2 text-xl font-semibold">No insights generated yet</h3>
             <p className="mb-6 max-w-md text-muted-foreground">
               You have {totalResponses} response{totalResponses !== 1 ? 's' : ''}. Click
-              "Generate Insights" to analyse them with AI.
+              &ldquo;Generate Insights&rdquo; to analyse them with AI.
             </p>
             <GenerateInsightsButton surveyId={params.id} />
           </CardContent>
@@ -194,7 +194,7 @@ export default async function InsightsPage({ params }: { params: { id: string } 
                             key={idx}
                             className="rounded-lg bg-muted p-3 text-sm"
                           >
-                            "{typeof item === 'string' ? item : item.text || JSON.stringify(item)}"
+                            &ldquo;{typeof item === 'string' ? item : item.text || JSON.stringify(item)}&rdquo;
                           </div>
                         ))}
                       </div>

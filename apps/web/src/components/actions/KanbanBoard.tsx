@@ -35,6 +35,7 @@ export function KanbanBoard({ surveyId }: { surveyId: string }) {
 
     useEffect(() => {
         fetchActions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [surveyId])
 
     const updateStatus = async (actionId: string, newStatus: Action['status']) => {

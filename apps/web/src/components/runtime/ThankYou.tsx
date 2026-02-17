@@ -16,7 +16,7 @@ export function ThankYou({ surveyTitle }: ThankYouProps) {
         </div>
         <CardTitle className="text-2xl">Thank You!</CardTitle>
         <CardDescription>
-          Your response to "{surveyTitle}" has been recorded.
+          Your response to &ldquo;{surveyTitle}&rdquo; has been recorded.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-4">
