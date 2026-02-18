@@ -3,6 +3,8 @@ import { authOptions } from '@/lib/auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Building2, ChevronRight } from 'lucide-react'
 import { db } from '@kauri/db/client'
 import { memberships, invitations } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
@@ -84,6 +86,28 @@ export default async function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Business Settings */}
+      {session.tenantId && (
+        <Link href="/dashboard/settings/business">
+          <Card className="transition-colors hover:bg-muted/50 cursor-pointer">
+            <CardContent className="flex items-center justify-between py-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <Building2 className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Business Profile</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure your company info, branding, and AI context
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
       )}
 
       {/* Danger Zone */}

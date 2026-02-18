@@ -6,7 +6,7 @@ import { eq, count, desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, BarChart3, FileText, Brain, CheckCircle2, AlertTriangle, Info, ListTodo } from 'lucide-react'
+import { ArrowLeft, BarChart3, FileText, Brain, CheckCircle2, AlertTriangle, Info, ListTodo, MessageSquare, Badge } from 'lucide-react'
 import Link from 'next/link'
 import { DeleteSurveyButton } from '@/components/surveys/DeleteSurveyButton'
 import { PublishSurveyButton } from '@/components/surveys/PublishSurveyButton'
@@ -187,10 +187,19 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
 
       {/* Survey Links & Content Tabs */}
       <Tabs defaultValue="questions" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+        <TabsList className="grid w-full grid-cols-3 max-w-[500px]">
           <TabsTrigger value="questions" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Questions
+          </TabsTrigger>
+          <TabsTrigger value="responses" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Responses
+            {totalResponses > 0 && (
+              <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                {totalResponses}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="actions" className="flex items-center gap-2">
             <ListTodo className="h-4 w-4" />
@@ -246,6 +255,71 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
 
           {/* Survey Link */}
           <SurveyLinkCard surveyId={params.id} />
+        </TabsContent>
+
+        <TabsContent value="responses" className="pt-4">
+          {allResponses.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <MessageSquare className="mb-4 h-16 w-16 text-muted-foreground" />
+                <h3 className="mb-2 text-xl font-semibold">No responses yet</h3>
+                <p className="mb-6 max-w-md text-muted-foreground">
+                  Share your survey link to start collecting responses.
+                </p>
+                <CopyLinkButton surveyId={params.id} variant="share" />
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {allResponses.map((response, idx) => {
+                const items = response.items as any[]
+                const isComplete = items.length === surveyQuestions.length
+                return (
+                  <Card key={response.id}>
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                            {allResponses.length - idx}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              Response #{allResponses.length - idx}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(response.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          isComplete
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {isComplete ? 'Complete' : `${items.length}/${surveyQuestions.length} answered`}
+                        </span>
+                      </div>
+                      {items.length > 0 && (
+                        <div className="space-y-2 border-t pt-3">
+                          {items.map((item: any) => {
+                            const question = surveyQuestions.find((q: any) => q.id === item.questionId)
+                            return (
+                              <div key={item.id} className="grid grid-cols-[1fr_1fr] gap-2 text-sm">
+                                <p className="text-muted-foreground truncate">{question?.text || 'Question'}</p>
+                                <p className="font-medium truncate">
+                                  {item.valueText || item.valueChoice || (item.valueScale != null ? `${item.valueScale}/5` : item.valueNum != null ? String(item.valueNum) : '—')}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="actions" className="pt-4">

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/use-toast'
-import { Plus, Trash2, Save, ArrowLeft, Brain, Sparkles, GripVertical } from 'lucide-react'
+import { Plus, Trash2, Save, ArrowLeft, Brain, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
 type QuestionType = 'scale' | 'text' | 'choice' | 'multi_select' | 'rating'
@@ -564,7 +564,9 @@ export default function NewSurveyPage() {
                   {questions.map((question, index) => (
                     <Card key={question.id} className="p-4">
                       <div className="flex items-start gap-3">
-                        <GripVertical className="h-5 w-5 text-muted-foreground mt-1 cursor-move" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
+                          {index + 1}
+                        </div>
                         <div className="flex-1 space-y-1">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">

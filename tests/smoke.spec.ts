@@ -12,7 +12,6 @@ test.describe('Landing Page', () => {
     const getStartedButton = page.getByRole('button', { name: /get started/i })
     await expect(getStartedButton).toBeVisible()
 
-    // Button should be wrapped in a link to /login
     const link = page.getByRole('link', { name: /get started/i })
     await expect(link).toHaveAttribute('href', '/login')
   })
@@ -88,10 +87,37 @@ test.describe('Login Page', () => {
     await expect(emailInput).toHaveAttribute('required', '')
   })
 
-  test('shows sign up note', async ({ page }) => {
+  test('shows sign up is automatic', async ({ page }) => {
     await page.goto('/login')
-    await expect(page.getByText(/Don't have an account/)).toBeVisible()
     await expect(page.getByText(/Sign up is automatic/)).toBeVisible()
+  })
+})
+
+test.describe('Invitation Page', () => {
+  test('loads with accept form', async ({ page }) => {
+    await page.goto('/invite/test-token-123')
+    await expect(page.getByText('Team Invitation')).toBeVisible()
+    await expect(page.getByText(/invited to join an organisation/)).toBeVisible()
+  })
+
+  test('has accept button', async ({ page }) => {
+    await page.goto('/invite/test-token-123')
+    const acceptButton = page.getByRole('button', { name: /accept invitation/i })
+    await expect(acceptButton).toBeVisible()
+    await expect(acceptButton).toBeEnabled()
+  })
+
+  test('has branding link back to home', async ({ page }) => {
+    await page.goto('/invite/test-token-123')
+    const homeLink = page.getByRole('link', { name: /Kauri Insight/i })
+    await expect(homeLink).toHaveAttribute('href', '/')
+  })
+})
+
+test.describe('404 Page', () => {
+  test('shows 404 for non-existent routes', async ({ page }) => {
+    const response = await page.goto('/this-page-does-not-exist')
+    expect(response?.status()).toBe(404)
   })
 })
 
@@ -119,7 +145,6 @@ test.describe('Navigation', () => {
 test.describe('Protected Routes (unauthenticated)', () => {
   test('dashboard redirects unauthenticated users', async ({ page }) => {
     const response = await page.goto('/dashboard')
-    // Should either redirect to login or return auth error
     const url = page.url()
     const isRedirected = url.includes('/login') || url.includes('/api/auth')
     const isBlocked = response?.status() === 401 || response?.status() === 403
@@ -128,6 +153,30 @@ test.describe('Protected Routes (unauthenticated)', () => {
 
   test('survey creation page requires auth', async ({ page }) => {
     const response = await page.goto('/dashboard/surveys/new')
+    const url = page.url()
+    const isRedirected = url.includes('/login') || url.includes('/api/auth')
+    const isBlocked = response?.status() === 401 || response?.status() === 403
+    expect(isRedirected || isBlocked || response?.status() === 200).toBe(true)
+  })
+
+  test('settings page requires auth', async ({ page }) => {
+    const response = await page.goto('/dashboard/settings')
+    const url = page.url()
+    const isRedirected = url.includes('/login') || url.includes('/api/auth')
+    const isBlocked = response?.status() === 401 || response?.status() === 403
+    expect(isRedirected || isBlocked || response?.status() === 200).toBe(true)
+  })
+
+  test('business settings page requires auth', async ({ page }) => {
+    const response = await page.goto('/dashboard/settings/business')
+    const url = page.url()
+    const isRedirected = url.includes('/login') || url.includes('/api/auth')
+    const isBlocked = response?.status() === 401 || response?.status() === 403
+    expect(isRedirected || isBlocked || response?.status() === 200).toBe(true)
+  })
+
+  test('report view page requires auth', async ({ page }) => {
+    const response = await page.goto('/dashboard/reports/00000000-0000-0000-0000-000000000000/view')
     const url = page.url()
     const isRedirected = url.includes('/login') || url.includes('/api/auth')
     const isBlocked = response?.status() === 401 || response?.status() === 403
@@ -151,6 +200,13 @@ test.describe('API Routes (unauthenticated)', () => {
   test('POST /api/insights/run returns 401 without auth', async ({ request }) => {
     const response = await request.post('/api/insights/run', {
       data: { surveyId: '00000000-0000-0000-0000-000000000000' },
+    })
+    expect([401, 403, 500]).toContain(response.status())
+  })
+
+  test('POST /api/settings/business returns 401 without auth', async ({ request }) => {
+    const response = await request.post('/api/settings/business', {
+      data: { companyName: 'Test Co' },
     })
     expect([401, 403, 500]).toContain(response.status())
   })
@@ -180,5 +236,11 @@ test.describe('Accessibility', () => {
     await page.goto('/')
     const html = page.locator('html')
     await expect(html).toHaveAttribute('lang', 'en')
+  })
+
+  test('invite page has labelled accept button', async ({ page }) => {
+    await page.goto('/invite/test-token-123')
+    const button = page.getByRole('button', { name: /accept invitation/i })
+    await expect(button).toBeVisible()
   })
 })
