@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { MoreHorizontal, Trash2, Mail, CheckCircle2, Clock } from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Trash2, Mail, Clock } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 
 interface Member {
@@ -50,6 +49,7 @@ export function TeamMemberList({ tenantId, currentUserRole }: { tenantId: string
 
     useEffect(() => {
         fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     if (loading) {

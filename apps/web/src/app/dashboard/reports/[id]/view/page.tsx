@@ -1,9 +1,21 @@
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { db } from '@kauri/db/client'
 import { reports } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
+import { PrintButton } from '@/components/reports/PrintButton'
 
 export default async function ReportViewPage({ params }: { params: { id: string } }) {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.tenantId) {
+        redirect('/login')
+    }
+
     const report = await db.query.reports.findFirst({
         where: eq(reports.id, params.id),
         with: {
@@ -18,55 +30,75 @@ export default async function ReportViewPage({ params }: { params: { id: string 
         notFound()
     }
 
+    // Auth check: report's survey must belong to this tenant
+    const survey = report.survey as any
+    if (survey && survey.tenantId !== session.tenantId) {
+        notFound()
+    }
+
     return (
-        <div className="max-w-[800px] mx-auto bg-white text-black p-0 sm:p-8 min-h-screen border shadow-sm print:shadow-none print:border-none">
-            {/* Header */}
-            <div className="border-b-4 border-primary pb-6 mb-8 flex justify-between items-end">
-                <div>
-                    <h1 className="text-4xl font-bold uppercase tracking-tight text-primary">Executive Report</h1>
-                    <p className="text-xl text-muted-foreground mt-2">{report.title}</p>
-                </div>
-                <div className="text-right">
-                    <p className="font-semibold text-primary">Kauri Insight</p>
-                    <p className="text-sm text-muted-foreground">{new Date(report.createdAt).toLocaleDateString()}</p>
-                </div>
+        <div className="space-y-4">
+            {/* Toolbar — hidden in print */}
+            <div className="flex items-center justify-between print:hidden">
+                <Link href={`/dashboard/surveys/${survey?.id}/insights`}>
+                    <Button variant="ghost" size="sm">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Insights
+                    </Button>
+                </Link>
+                <PrintButton />
             </div>
 
-            {/* Executive Summary */}
-            <div className="mb-10">
-                <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">1. Executive Summary</h2>
-                <div className="text-lg leading-relaxed text-slate-800">
-                    {report.executiveSummary}
-                </div>
-            </div>
-
-            {/* Survey Details */}
-            <div className="mb-10 p-4 bg-slate-50 border rounded-lg">
-                <h3 className="text-sm font-semibold uppercase text-slate-500 mb-2">Survey Origin</h3>
-                <p className="text-lg font-medium">{(report.survey as any).name}</p>
-                {(report.survey as any).description && (
-                    <p className="text-sm text-slate-600 mt-1">{(report.survey as any).description}</p>
-                )}
-            </div>
-
-            {/* Sections */}
-            {(report.sections as any[]).map((section: any, index: number) => (
-                <div key={section.id} className="mb-12 break-inside-avoid">
-                    <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">
-                        {index + 2}. {section.heading}
-                    </h2>
-                    <div className="text-lg leading-relaxed text-slate-800 space-y-4">
-                        {section.body.split('\n').map((para: string, i: number) => (
-                            para ? <p key={i}>{para}</p> : <br key={i} />
-                        ))}
+            {/* Report */}
+            <div className="max-w-[800px] mx-auto bg-white text-black p-4 sm:p-8 min-h-screen border shadow-sm print:shadow-none print:border-none">
+                {/* Header */}
+                <div className="border-b-4 border-primary pb-6 mb-8 flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+                    <div>
+                        <h1 className="text-3xl sm:text-4xl font-bold uppercase tracking-tight text-primary">Executive Report</h1>
+                        <p className="text-lg sm:text-xl text-muted-foreground mt-2">{report.title}</p>
+                    </div>
+                    <div className="sm:text-right">
+                        <p className="font-semibold text-primary">Kauri Insight</p>
+                        <p className="text-sm text-muted-foreground">{new Date(report.createdAt).toLocaleDateString()}</p>
                     </div>
                 </div>
-            ))}
 
-            {/* Footer */}
-            <div className="mt-20 pt-8 border-t text-center text-sm text-slate-400">
-                <p>Generated by Kauri Insight AI Engine</p>
-                <p>© {new Date().getFullYear()} Kauri Insight. All rights reserved.</p>
+                {/* Executive Summary */}
+                <div className="mb-10">
+                    <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">1. Executive Summary</h2>
+                    <div className="text-lg leading-relaxed text-slate-800">
+                        {report.executiveSummary}
+                    </div>
+                </div>
+
+                {/* Survey Details */}
+                <div className="mb-10 p-4 bg-slate-50 border rounded-lg">
+                    <h3 className="text-sm font-semibold uppercase text-slate-500 mb-2">Survey Origin</h3>
+                    <p className="text-lg font-medium">{survey?.name}</p>
+                    {survey?.description && (
+                        <p className="text-sm text-slate-600 mt-1">{survey.description}</p>
+                    )}
+                </div>
+
+                {/* Sections */}
+                {(report.sections as any[]).map((section: any, index: number) => (
+                    <div key={section.id} className="mb-12 break-inside-avoid">
+                        <h2 className="text-2xl font-bold text-primary mb-4 border-b pb-2">
+                            {index + 2}. {section.heading}
+                        </h2>
+                        <div className="text-lg leading-relaxed text-slate-800 space-y-4">
+                            {section.body.split('\n').map((para: string, i: number) => (
+                                para ? <p key={i}>{para}</p> : <br key={i} />
+                            ))}
+                        </div>
+                    </div>
+                ))}
+
+                {/* Footer */}
+                <div className="mt-20 pt-8 border-t text-center text-sm text-slate-400">
+                    <p>Generated by Kauri Insight AI Engine</p>
+                    <p>&copy; {new Date().getFullYear()} Kauri Insight. All rights reserved.</p>
+                </div>
             </div>
         </div>
     )

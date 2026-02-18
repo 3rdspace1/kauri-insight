@@ -6,27 +6,35 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BarChart3, Mail } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { BarChart3, Mail, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
 
     try {
-      await signIn('email', {
+      const result = await signIn('email', {
         email,
         redirect: false,
         callbackUrl: '/dashboard',
       })
-      setSubmitted(true)
-    } catch (error) {
-      console.error('Sign in error:', error)
+
+      if (result?.error) {
+        setError('Failed to send magic link. Please check your email and try again.')
+      } else {
+        setSubmitted(true)
+      }
+    } catch {
+      setError('Something went wrong. Please check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -34,7 +42,7 @@ export default function LoginPage() {
 
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/50">
+      <div className="flex min-h-screen items-center justify-center bg-muted/50 px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -45,10 +53,17 @@ export default function LoginPage() {
               We&apos;ve sent a magic link to <strong>{email}</strong>
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-center text-sm text-muted-foreground">
               Click the link in the email to sign in to your account.
             </p>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => { setSubmitted(false); setEmail('') }}
+            >
+              Use a different email
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -56,7 +71,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50">
+    <div className="flex min-h-screen items-center justify-center bg-muted/50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <Link href="/" className="mx-auto mb-4 flex items-center gap-2 font-bold text-xl">
@@ -70,6 +85,12 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email address</Label>
               <Input
@@ -88,9 +109,7 @@ export default function LoginPage() {
           </form>
           <div className="mt-4 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">
-              Sign up is automatic
-            </Link>
+            <span className="text-primary">Sign up is automatic</span>
           </div>
         </CardContent>
       </Card>

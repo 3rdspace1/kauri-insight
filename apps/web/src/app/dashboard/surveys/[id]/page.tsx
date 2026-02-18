@@ -6,10 +6,12 @@ import { eq, count, desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, BarChart3, FileText, Share2, Brain, CheckCircle2, AlertTriangle, Info, ListTodo } from 'lucide-react'
+import { ArrowLeft, BarChart3, FileText, Brain, CheckCircle2, AlertTriangle, Info, ListTodo } from 'lucide-react'
 import Link from 'next/link'
 import { DeleteSurveyButton } from '@/components/surveys/DeleteSurveyButton'
 import { PublishSurveyButton } from '@/components/surveys/PublishSurveyButton'
+import { CopyLinkButton } from '@/components/surveys/CopyLinkButton'
+import { SurveyLinkCard } from '@/components/surveys/SurveyLinkCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KanbanBoard } from '@/components/actions/KanbanBoard'
 
@@ -86,10 +88,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
             <PublishSurveyButton surveyId={params.id} />
           )}
           <DeleteSurveyButton surveyId={params.id} surveyName={survey.name} />
-          <Button variant="outline">
-            <Share2 className="mr-2 h-4 w-4" />
-            Share
-          </Button>
+          <CopyLinkButton surveyId={params.id} variant="share" />
           <Link href={`/dashboard/surveys/${params.id}/insights`}>
             <Button>
               <BarChart3 className="mr-2 h-4 w-4" />
@@ -246,24 +245,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
           </Card>
 
           {/* Survey Link */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Survey Link</CardTitle>
-              <CardDescription>
-                Share this link with respondents
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded bg-muted px-3 py-2 text-sm">
-                  {typeof window !== 'undefined' ? window.location.origin : ''}/runtime/{params.id}
-                </code>
-                <Button variant="outline" size="sm">
-                  Copy
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <SurveyLinkCard surveyId={params.id} />
         </TabsContent>
 
         <TabsContent value="actions" className="pt-4">
