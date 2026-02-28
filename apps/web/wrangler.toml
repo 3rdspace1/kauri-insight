@@ -1,0 +1,9 @@
+name = "kauri-insight"
+pages_build_output_dir = ".vercel/output/static"
+compatibility_date = "2024-03-29"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kauri-insight-db"
+database_id = "356d244f-2ce4-485c-90ff-face2e079523"

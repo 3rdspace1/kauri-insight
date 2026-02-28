@@ -1,5 +1,5 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { surveys } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
@@ -9,7 +9,7 @@ import { Plus, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function SurveysPage() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.tenantId) {
     return (
@@ -22,7 +22,7 @@ export default async function SurveysPage() {
 
   const tenantSurveys = await db.query.surveys.findMany({
     where: eq(surveys.tenantId, session.tenantId),
-    orderBy: (surveys, { desc }) => [desc(surveys.createdAt)],
+    orderBy: (surveys: any, { desc }: any) => [desc(surveys.createdAt)],
   })
 
   return (
@@ -61,7 +61,7 @@ export default async function SurveysPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {tenantSurveys.map((survey) => (
+          {tenantSurveys.map((survey: any) => (
             <Card key={survey.id} className="hover:border-primary transition-colors">
               <CardHeader>
                 <div className="flex items-start justify-between">

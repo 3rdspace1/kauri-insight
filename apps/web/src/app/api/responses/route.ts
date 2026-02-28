@@ -40,6 +40,8 @@ export async function POST(request: Request) {
       const [newProfile] = await db
         .insert(profiles)
         .values({
+          id: crypto.randomUUID(),
+          createdAt: Date.now() as any,
           email: validated.email,
           tenantId: survey.tenantId,
         })
@@ -49,17 +51,20 @@ export async function POST(request: Request) {
 
     // Create consent record
     await db.insert(consents).values({
+      id: crypto.randomUUID(),
       profileId: profile.id,
       surveyId: validated.surveyId,
       consentGiven: validated.consentGiven,
       consentText: 'I consent to participate in this survey and allow my responses to be collected and analysed.',
-      consentedAt: new Date(),
+      consentedAt: Date.now() as any,
     })
 
     // Create response record
     const [response] = await db
       .insert(responses)
       .values({
+        id: crypto.randomUUID(),
+        createdAt: Date.now() as any,
         surveyId: validated.surveyId,
         profileId: profile.id,
         status: 'in_progress',

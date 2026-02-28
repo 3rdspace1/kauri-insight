@@ -21,7 +21,7 @@ export async function GET(
           },
         },
       },
-    })
+    }) as any
 
     if (!survey) {
       return NextResponse.json(

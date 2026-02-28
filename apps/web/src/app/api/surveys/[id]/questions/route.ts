@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { surveys, questions } from '@kauri/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -28,7 +28,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -63,7 +63,8 @@ export async function POST(
     const [question] = await db
       .insert(questions)
       .values({
-        id: validated.id,
+        id: validated.id || crypto.randomUUID(),
+        createdAt: Date.now() as any,
         surveyId: params.id,
         kind: validated.kind,
         text: validated.text,
@@ -73,8 +74,8 @@ export async function POST(
         scaleMax: validated.scaleMax,
         scaleMinLabel: validated.scaleMinLabel,
         scaleMaxLabel: validated.scaleMaxLabel,
-        choices: validated.choices,
-        logicJson: validated.logicJson,
+        choices: validated.choices as any,
+        logicJson: validated.logicJson as any,
         orderIndex: validated.orderIndex || nextOrderIndex,
       })
       .returning()

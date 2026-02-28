@@ -1,13 +1,13 @@
-import { getServerSession } from 'next-auth'
+import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { tenants } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
 import { BusinessContextForm } from '@/components/settings/BusinessContextForm'
 
 export default async function BusinessSettingsPage() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.tenantId) {
     redirect('/login')

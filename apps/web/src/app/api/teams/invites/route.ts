@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { invitations } from '@kauri/db/schema'
 import { z } from 'zod'
@@ -13,7 +13,7 @@ const inviteSchema = z.object({
 
 export async function POST(request: Request) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await auth()
 
         if (!session?.tenantId || (session.role !== 'admin' && session.role !== 'owner')) {
             return NextResponse.json({ error: 'Unauthorized. Admin role required.' }, { status: 403 })
@@ -30,12 +30,14 @@ export async function POST(request: Request) {
         const [invitation] = await db
             .insert(invitations)
             .values({
+                id: crypto.randomUUID(),
+                createdAt: Date.now() as any,
                 tenantId: session.tenantId,
                 email: validated.email,
                 role: validated.role,
                 token,
                 status: 'pending',
-                expiresAt,
+                expiresAt: expiresAt.getTime() as any,
                 invitedBy: session.user.id,
             })
             .returning()

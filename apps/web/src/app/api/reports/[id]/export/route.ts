@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { reports } from '@kauri/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -11,17 +11,14 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await auth()
 
         if (!session?.tenantId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
         const report = await db.query.reports.findFirst({
-            where: and(
-                eq(reports.id, params.id),
-                eq(reports.tenantId, session.tenantId)
-            ),
+            where: eq(reports.id, params.id),
         })
 
         if (!report) {

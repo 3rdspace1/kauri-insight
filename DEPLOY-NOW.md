@@ -1,224 +1,90 @@
-# 🚀 DEPLOY NOW - Simple 3-Step Guide
+# 🚀 DEPLOY NOW - Cloudflare Edition (3-Step Guide)
 
-**Everything is ready!** Just follow these 3 steps.
+**Everything is ready to run entirely on Cloudflare!** The database has been migrated from Postgres to Cloudflare D1 (SQLite) and the app is optimized for Cloudflare Pages with edge runtime.
 
 ---
 
 ## ✅ What's Already Done
 
-- ✅ Database migration completed
-- ✅ Code pushed to GitHub
-- ✅ Railway configuration created
-- ✅ Environment variables documented
+- ✅ Integrated Database layer with Cloudflare D1
+- ✅ Replaced Auth.js database adapter to work with SQLite/D1 at the Edge
+- ✅ Installed `@cloudflare/next-on-pages` and `wrangler`
+- ✅ Generated a `wrangler.toml` for deployment
 
 ---
 
-## 📋 Your Environment Variables (Copy These!)
+## 📋 Prerequisites
 
+Before starting, make sure you have:
+1. A **Cloudflare account** (free)
+2. A **GitHub account**
+3. **Cloudflare CLI (Wrangler)** installed globally on your machine (or just use `npx wrangler`)
+
+If you don't have Wrangler authorized yet, run:
 ```bash
-DATABASE_URL=postgresql://postgres:pWXqHwxmoSpwEvfMWiDKjOwOarVAAAcS@crossover.proxy.rlwy.net:44360/railway
-
-MODELSLAB_API_KEY=JZ2sSqdyaFahnFioDJyYtBANUMAEnmiJqQZ3qw73DGtpIapnxNWa8imSWWBm
-
-NEXTAUTH_SECRET=jX9fK2mP8qR5tY7wN3vL6hG4sD1aZ0xC9bV8nM5kJ2
-
-NEXTAUTH_URL=https://${{RAILWAY_STATIC_URL}}
-
-NODE_ENV=production
+npx wrangler login
 ```
 
 ---
 
 ## 🎯 3-Step Deployment
 
-### **STEP 1: Go to Railway** (2 minutes)
+### **STEP 1: Create your D1 Database**
 
-1. Open: **https://railway.app/new**
-2. Click **"Deploy from GitHub repo"**
-3. **Sign in with GitHub** (if not already)
-4. **Select your repository**: `kauri-insight` or `3rdspace1/kauri-insight`
-5. **Select branch**: `strange-germain`
-6. Click **"Deploy Now"**
+1. Run the following command in your terminal to create the database:
+   ```bash
+   npx wrangler d1 create kauri-insight-db
+   ```
+2. The command will output bindings like `database_id = "xxxxx-xxxx-xxxx-xxxx"`.
+3. Open `apps/web/wrangler.toml` and replace `replace-with-your-d1-id` with your generated ID.
 
-### **STEP 2: Add Environment Variables** (2 minutes)
+### **STEP 2: Apply the Database Schema**
 
-1. After Railway starts deploying, click **"Variables"** tab
-2. Click **"Raw Editor"** button
-3. **Copy and paste this exactly**:
+Now we need to create the tables in your production Cloudflare database.
 
+Run this command to execute the Drizzle migrations:
+```bash
+npx wrangler d1 execute kauri-insight-db --local --file=packages/db/migrations/meta/_journal.json
+# Note: In production you can deploy the migrations via standard drizzle-kit commands or executing your SQL dump block.
+# Since we generated standard drizzle artifacts, you can just run:
+npx wrangler d1 execute kauri-insight-db --remote --file=packages/db/migrations/0000_xxxxx.sql 
 ```
-DATABASE_URL=postgresql://postgres:pWXqHwxmoSpwEvfMWiDKjOwOarVAAAcS@crossover.proxy.rlwy.net:44360/railway
-MODELSLAB_API_KEY=JZ2sSqdyaFahnFioDJyYtBANUMAEnmiJqQZ3qw73DGtpIapnxNWa8imSWWBm
-NEXTAUTH_SECRET=jX9fK2mP8qR5tY7wN3vL6hG4sD1aZ0xC9bV8nM5kJ2
-NEXTAUTH_URL=https://${{RAILWAY_STATIC_URL}}
-NODE_ENV=production
-```
+*(Check your exact filename under `packages/db/migrations/` to find the correct SQL migration file).*
 
-4. Click **"Update Variables"**
-5. Railway will automatically redeploy
 
-### **STEP 3: Get Your URL & Test** (1 minute)
+### **STEP 3: Deploy to Cloudflare Pages!**
 
-1. Click **"Settings"** tab
-2. Under **"Domains"**, you'll see your app URL
-3. Click **"Generate Domain"** if not already generated
-4. Copy the URL (looks like: `https://kauri-insight-production.up.railway.app`)
-5. **Open the URL in your browser!**
+1. Go to `apps/web`
+   ```bash
+   cd apps/web
+   ```
+2. Build the project using next-on-pages:
+   ```bash
+   npx @cloudflare/next-on-pages
+   ```
+3. Deploy it to Cloudflare Pages:
+   ```bash
+   npx wrangler pages deploy .vercel/output/static
+   ```
 
----
+*(Alternatively, you can just link your GitHub repository inside the Cloudflare Dashboard -> Pages -> Create a Project -> Framework: Next.js -> Build command: `npx @cloudflare/next-on-pages` -> Set up the D1 Binding under Settings > Functions > D1 Database Bindings with the variable name `DB`!)*
 
-## ✅ What to Test
+### **STEP 4: Set Environment Variables on Cloudflare Dashboard**
 
-Once your app is live:
-
-### **1. Homepage** (30 seconds)
-- Visit your Railway URL
-- Should see the homepage
-
-### **2. Sign In** (1 minute)
-- Click "Sign In"
-- Enter your email
-- Check email for magic link
-- Click magic link to sign in
-
-### **3. Business Context** (2 minutes)
-- Go to Settings → Business
-- Fill in your company info
-- Try "Auto-Fill" with a website
-- Save it
-
-### **4. Create Survey** (2 minutes)
-- Click "Create Survey"
-- Add some questions
-- Publish it
-- Share the public link (test in incognito)
-
-### **5. Generate Insights** (1 minute)
-- After getting some responses
-- Click "Generate Insights"
-- Wait 15-30 seconds
-- Should see AI analysis!
-
-### **6. Export Report** (1 minute)
-- Click "Export Report"
-- Choose PDF or PowerPoint
-- Wait 20-40 seconds
-- Download and open!
-- Should see beautiful AI-generated cover!
+1. Go to your Cloudflare Dashboard -> Pages -> Kauri Insight project.
+2. Go to **Settings** -> **Environment variables**.
+3. Add the following secrets (don't forget to **Encrypt** them):
+   
+   - `MODELSLAB_API_KEY`: JZ2sSqdyaFahnFioDJyYtBANUMAEnmiJqQZ3qw73DGtpIapnxNWa8imSWWBm
+   - `NEXTAUTH_SECRET`: jX9fK2mP8qR5tY7wN3vL6hG4sD1aZ0xC9bV8nM5kJ2
+   - `NEXTAUTH_URL`: https://kauri-insight.pages.dev *(Change your `.pages.dev` to match your actual CF domain)*
+   - `NODE_ENV`: production
 
 ---
 
 ## 🎉 That's It!
 
-Your app is now live and fully functional!
+Your Next.js App Router application is now fully running off **Cloudflare Workers** via standard Edge routing, and its state is persisting natively onto **Cloudflare D1**. Because D1 relies entirely on SQLite, the app enjoys lightning-fast read access with global distributed edges!
 
-**Your URL**: `https://your-app.up.railway.app`
-
----
-
-## 🔧 Troubleshooting
-
-### **Issue: Build Fails**
-
-**Check logs**:
-1. In Railway, click "Deployments"
-2. Click the failed deployment
-3. Read the error logs
-
-**Common fixes**:
-- Make sure you selected the right repository
-- Make sure branch is `strange-germain` (or merge to `main` first)
-- Check that all environment variables are set
-
-### **Issue: PDF Export Fails**
-
-**Solution**: Playwright needs to be installed
-
-1. In Railway, click "Settings"
-2. Add this to "Install Command":
-   ```
-   pnpm install && npx playwright install chromium
-   ```
-3. Redeploy
-
-### **Issue: "Invalid credentials" when signing in**
-
-**Solution**: Check NEXTAUTH_URL
-
-1. Make sure NEXTAUTH_URL matches your actual domain
-2. Should be: `https://${{RAILWAY_STATIC_URL}}`
-3. Or your custom domain if you set one
-
-### **Issue: AI insights fail**
-
-**Check**:
-1. MODELSLAB_API_KEY is set correctly
-2. API key is valid (check modelslab.com dashboard)
-3. You have credits in your ModelsLab account
-
----
-
-## 💰 Costs
-
-**Railway Free Tier**:
-- $5 free credits per month
-- Should cover development/testing
-- Scales automatically
-
-**After Free Tier**:
-- ~$5-10/month for small usage
-- Only pay for what you use
-
-**ModelsLab**:
-- ~$0.03-0.05 per complete report
-- Pay-as-you-go
-- Very affordable
-
----
-
-## 🎯 Next Steps After Deployment
-
-### **Week 1**
-- Share with users
-- Collect feedback
-- Monitor logs in Railway
-- Check error rates
-
-### **Week 2**
-- Analyze usage patterns
-- Optimize based on feedback
-- Consider custom domain
-
-### **Later**
-- Add custom domain (yourcompany.com)
-- Set up monitoring/analytics
-- Plan v2 features
-
----
-
-## 📞 Need Help?
-
-**Railway Issues**:
-- Check Railway docs: https://docs.railway.app
-- Railway Discord: https://discord.gg/railway
-
-**ModelsLab Issues**:
-- Check API status: https://modelslab.com/status
-- Support: support@modelslab.com
-
-**Code Issues**:
-- Check documentation in this repo
-- Review DEPLOYMENT-GUIDE.md for detailed info
-
----
-
-## 🚀 YOU'RE READY!
-
-Everything is configured and ready to go. Just:
-
-1. Go to railway.app/new
-2. Deploy from GitHub
-3. Add environment variables (copy from above)
-4. Test your app!
-
-**Good luck!** 🎉
+> **Having Troubles?** 
+> * Build Errors? `next-on-pages` usually logs clearly. Some Windows environments have issues resolving Vercel CLI locally so deploying via the GitHub integration inside the Cloudflare dashboard is the **safest & most seamless** deployment method.

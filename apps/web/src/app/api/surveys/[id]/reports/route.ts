@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { surveys, reports, reportSections, insights as insightsTable, responses } from '@kauri/db/schema'
 import { eq, and, count } from 'drizzle-orm'
@@ -11,7 +11,7 @@ export async function POST(
     { params }: { params: { id: string } }
 ) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await auth()
 
         if (!session?.tenantId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -51,8 +51,9 @@ export async function POST(
         const [report] = await db
             .insert(reports)
             .values({
+                id: crypto.randomUUID(),
+                createdAt: Date.now() as any,
                 surveyId: params.id,
-                tenantId: session.tenantId,
                 title: drafted.title || `${survey.name} - Executive Report`,
                 executiveSummary: drafted.executiveSummary,
             })
@@ -62,6 +63,8 @@ export async function POST(
         if (drafted.sections && drafted.sections.length > 0) {
             await db.insert(reportSections).values(
                 drafted.sections.map((s: any, i: number) => ({
+                    id: crypto.randomUUID(),
+                    createdAt: Date.now() as any,
                     reportId: report.id,
                     heading: s.heading,
                     body: s.body,

@@ -1,5 +1,5 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { surveys, responses, insights as insightsTable } from '@kauri/db/schema'
 import { eq, count } from 'drizzle-orm'
@@ -11,7 +11,7 @@ import { DashboardStats } from '@/components/dashboard/DashboardStats'
 import { LatestActivity } from '@/components/dashboard/LatestActivity'
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.tenantId) {
     return (
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
           .from(insightsTable)
           .innerJoin(surveys, eq(insightsTable.surveyId, surveys.id))
           .where(eq(surveys.tenantId, session.tenantId))
-          .then(res => res[0]?.count || 0)
+          .then((res: any) => res[0]?.count || 0)
       }} />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {tenantSurveys.slice(0, 5).map((survey) => (
+                  {tenantSurveys.slice(0, 5).map((survey: any) => (
                     <div
                       key={survey.id}
                       className="flex items-center justify-between border-b border-white/5 pb-4 last:border-0 last:pb-0"

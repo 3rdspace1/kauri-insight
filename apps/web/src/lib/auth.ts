@@ -1,32 +1,32 @@
-import type { NextAuthOptions } from 'next-auth'
-import EmailProvider from 'next-auth/providers/email'
+import NextAuth from 'next-auth'
+import Nodemailer from 'next-auth/providers/nodemailer'
 import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import { db } from '@kauri/db/client'
 import { users } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
 import { sendEmail, createMagicLinkEmail } from '@kauri/integrations/email'
 
-export const authOptions: NextAuthOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db) as any,
   providers: [
-    EmailProvider({
+    Nodemailer({
       server: process.env.SMTP_HOST
         ? {
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT),
-            auth: {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASSWORD,
-            },
-          }
-        : {
-            host: 'localhost',
-            port: 1025,
-            auth: {
-              user: 'test',
-              pass: 'test',
-            },
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT),
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASSWORD,
           },
+        }
+        : {
+          host: 'localhost',
+          port: 1025,
+          auth: {
+            user: 'test',
+            pass: 'test',
+          },
+        },
       from: process.env.NEXTAUTH_EMAIL_FROM || 'noreply@kauri-insight.app',
       sendVerificationRequest: async ({ identifier: email, url }) => {
         await sendEmail(createMagicLinkEmail(email, url))
@@ -46,9 +46,11 @@ export const authOptions: NextAuthOptions = {
         const [newUser] = await db
           .insert(users)
           .values({
+            id: crypto.randomUUID(),
             email: user.email,
             name: user.name || null,
-          })
+            createdAt: Date.now(),
+          } as any)
           .returning()
 
         existingUser = newUser
@@ -70,9 +72,9 @@ export const authOptions: NextAuthOptions = {
               },
             },
           },
-        })
+        }) as any
 
-        if (userRecord && userRecord.memberships.length > 0) {
+        if (userRecord && userRecord.memberships?.length > 0) {
           // Add first tenant to session (or implement tenant switching later)
           const membership = userRecord.memberships[0]
           session.tenantId = membership.tenant.id
@@ -90,7 +92,7 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
   },
-}
+})
 
 declare module 'next-auth' {
   interface Session {
@@ -108,3 +110,4 @@ declare module 'next-auth' {
     id: string
   }
 }
+

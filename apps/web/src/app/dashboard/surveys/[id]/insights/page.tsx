@@ -1,5 +1,5 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { surveys, insights as insightsTable, responses } from '@kauri/db/schema'
 import { eq, count } from 'drizzle-orm'
@@ -12,7 +12,7 @@ import { GenerateInsightsButton } from '@/components/insights/GenerateInsightsBu
 import { ExportReportButton } from '@/components/insights/ExportReportButton'
 
 export default async function InsightsPage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.tenantId) {
     return notFound()
@@ -29,7 +29,7 @@ export default async function InsightsPage({ params }: { params: { id: string } 
   // Get insights
   const insights = await db.query.insights.findMany({
     where: eq(insightsTable.surveyId, params.id),
-    orderBy: (insights, { desc }) => [desc(insights.createdAt)],
+    orderBy: (insights: any, { desc }: any) => [desc(insights.createdAt)],
   })
 
   // Get response count
@@ -42,9 +42,9 @@ export default async function InsightsPage({ params }: { params: { id: string } 
 
   // Calculate sentiment breakdown
   const sentimentCounts = {
-    positive: insights.filter((i) => i.sentiment === 'positive').length,
-    neutral: insights.filter((i) => i.sentiment === 'neutral').length,
-    negative: insights.filter((i) => i.sentiment === 'negative').length,
+    positive: insights.filter((i: any) => i.sentiment === 'positive').length,
+    neutral: insights.filter((i: any) => i.sentiment === 'neutral').length,
+    negative: insights.filter((i: any) => i.sentiment === 'negative').length,
   }
 
   return (
@@ -150,16 +150,15 @@ export default async function InsightsPage({ params }: { params: { id: string } 
         </Card>
       ) : (
         <div className="space-y-4">
-          {insights.map((insight) => (
+          {insights.map((insight: any) => (
             <Card
               key={insight.id}
-              className={`${
-                insight.sentiment === 'positive'
-                  ? 'border-l-4 border-l-green-500'
-                  : insight.sentiment === 'negative'
+              className={`${insight.sentiment === 'positive'
+                ? 'border-l-4 border-l-green-500'
+                : insight.sentiment === 'negative'
                   ? 'border-l-4 border-l-red-500'
                   : 'border-l-4 border-l-gray-300'
-              }`}
+                }`}
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -167,13 +166,12 @@ export default async function InsightsPage({ params }: { params: { id: string } 
                     <CardTitle>{insight.title}</CardTitle>
                     <div className="mt-1 flex gap-2">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          insight.sentiment === 'positive'
-                            ? 'bg-green-100 text-green-700'
-                            : insight.sentiment === 'negative'
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${insight.sentiment === 'positive'
+                          ? 'bg-green-100 text-green-700'
+                          : insight.sentiment === 'negative'
                             ? 'bg-red-100 text-red-700'
                             : 'bg-gray-100 text-gray-700'
-                        }`}
+                          }`}
                       >
                         {insight.sentiment}
                       </span>

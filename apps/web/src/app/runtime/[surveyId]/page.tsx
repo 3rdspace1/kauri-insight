@@ -203,7 +203,7 @@ export default function RuntimeSurveyPage() {
 
     let nextIndex = -1
     if (goTo) {
-      nextIndex = survey.questions.findIndex(q => q.id === goTo)
+      nextIndex = survey.questions.findIndex((q: any) => q.id === goTo)
     }
 
     // Fallback to next in list if no logic or target not found

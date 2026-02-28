@@ -3,11 +3,14 @@ import * as dotenv from 'dotenv'
 
 dotenv.config({ path: '../../.env' })
 
+const dbUrl = process.env.LOCAL_DB_PATH || process.env.DATABASE_URL || 'file:local.db'
+const authToken = process.env.DATABASE_AUTH_TOKEN
+
 export default {
   schema: './src/schema/index.ts',
   out: './migrations',
-  dialect: 'postgresql',
+  dialect: 'sqlite',
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    url: dbUrl,
   },
 } satisfies Config

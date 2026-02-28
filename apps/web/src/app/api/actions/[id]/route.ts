@@ -1,5 +1,5 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { actions, surveys } from '@kauri/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -18,7 +18,7 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await auth()
 
         if (!session?.tenantId) {
             throw new ApiError(401, 'Unauthorised')

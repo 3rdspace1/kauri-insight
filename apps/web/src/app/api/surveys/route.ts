@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { surveys } from '@kauri/db/schema'
 import { createSurveySchema } from '@kauri/shared/validators'
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 // GET /api/surveys - List surveys for tenant
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user || !session.tenantId) {
       throw new ApiError(401, 'Unauthorised')
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 // POST /api/surveys - Create survey
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user || !session.tenantId) {
       throw new ApiError(401, 'Unauthorised')
@@ -44,6 +44,8 @@ export async function POST(request: NextRequest) {
     const [survey] = await db
       .insert(surveys)
       .values({
+        id: crypto.randomUUID(),
+        createdAt: Date.now() as any,
         tenantId: session.tenantId,
         name: validated.name,
         title: validated.name, // Use name as title for now

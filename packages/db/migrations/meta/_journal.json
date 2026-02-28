@@ -1,26 +1,12 @@
 {
   "version": "7",
-  "dialect": "postgresql",
+  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
-      "version": "7",
-      "when": 1768647267417,
-      "tag": "0000_fuzzy_redwing",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1768719128512,
-      "tag": "0001_good_matthew_murdock",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1768721000000,
-      "tag": "0002_rename_nextauth_tables",
+      "version": "6",
+      "when": 1772180438965,
+      "tag": "0000_pretty_squadron_sinister",
       "breakpoints": true
     }
   ]

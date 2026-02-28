@@ -1,5 +1,5 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { redirect } from 'next/navigation'
@@ -10,7 +10,7 @@ import { InviteMemberForm } from '@/components/teams/InviteMemberForm'
 import { TeamMemberList } from '@/components/teams/TeamMemberList'
 
 export default async function SettingsPage() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session) {
     redirect('/login')

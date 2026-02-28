@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { surveys, responses, responseItems, questions, insights as insightsTable } from '@kauri/db/schema'
 import { generateSurveyInsights } from '@kauri/ai/insights'
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 // POST /api/insights/run?surveyId=xxx
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user || !session.tenantId) {
       throw new ApiError(401, 'Unauthorised')
@@ -75,11 +75,13 @@ export async function POST(request: NextRequest) {
       const [saved] = await db
         .insert(insightsTable)
         .values({
+          id: crypto.randomUUID(),
           surveyId,
           title: insight.title,
           summary: insight.summary,
-          sentiment: insight.sentiment,
+          sentiment: insight.sentiment as any,
           evidenceJson: insight.evidence,
+          createdAt: Date.now() as any,
         })
         .returning()
 

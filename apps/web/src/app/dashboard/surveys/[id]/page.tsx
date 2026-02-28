@@ -1,5 +1,5 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { surveys, questions, responses, responseItems, insights as insightsTable } from '@kauri/db/schema'
 import { eq, count, desc } from 'drizzle-orm'
@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KanbanBoard } from '@/components/actions/KanbanBoard'
 
 export default async function SurveyDetailPage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.tenantId) {
     return notFound()
@@ -48,7 +48,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
   })
 
   const completedResponses = allResponses.filter(
-    (r) => r.items.length === survey.questions.length
+    (r: any) => r.items.length === (survey.questions as any[]).length
   ).length
 
   const completionRate = totalResponses > 0
@@ -59,7 +59,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
   const insights = await db.query.insights.findMany({
     where: eq(insightsTable.surveyId, params.id),
     limit: 3,
-    orderBy: [desc(insightsTable.createdAt)],
+    orderBy: (insights: any, { desc }: any) => [desc(insights.createdAt)],
   })
 
   return (
@@ -132,7 +132,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{survey.questions.length}</div>
+            <div className="text-2xl font-bold">{(survey.questions as any[]).length}</div>
             <p className="text-xs text-muted-foreground">
               In this survey
             </p>
@@ -165,7 +165,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-3">
-              {insights.map((insight) => (
+              {insights.map((insight: any) => (
                 <div key={insight.id} className="rounded-lg bg-background p-4 shadow-sm border">
                   <div className="flex items-start gap-3">
                     {insight.sentiment === 'positive' && <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />}
@@ -208,13 +208,13 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {survey.questions.length === 0 ? (
+              {(survey.questions as any[]).length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
                   No questions added yet
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {survey.questions.map((question, index) => (
+                  {(survey.questions as any[]).map((question: any, index: number) => (
                     <div
                       key={question.id}
                       className="rounded-lg border p-4"

@@ -16,11 +16,6 @@ export async function POST(
     const response = await db.query.responses.findFirst({
       where: eq(responses.id, params.id),
       with: {
-        survey: {
-          with: {
-            questions: true,
-          },
-        },
         items: true,
       },
     })
@@ -32,6 +27,17 @@ export async function POST(
       )
     }
 
+    const survey = await db.query.surveys.findFirst({
+      where: eq(surveys.id, response.surveyId),
+      with: {
+        questions: true
+      }
+    })
+
+    if (!survey) {
+      return NextResponse.json({ error: 'Survey not found' }, { status: 404 })
+    }
+
     if (response.status === 'completed') {
       return NextResponse.json(
         { error: 'Response is already completed' },
@@ -40,10 +46,10 @@ export async function POST(
     }
 
     // Validate all required questions are answered
-    const requiredQuestions = response.survey.questions.filter(
+    const requiredQuestions = (survey.questions as any[]).filter(
       (q: any) => q.required
     )
-    const answeredQuestionIds = response.items.map((item: any) => item.questionId)
+    const answeredQuestionIds = (response.items as any[]).map((item: any) => item.questionId)
 
     const missingRequired = requiredQuestions.filter(
       (q: any) => !answeredQuestionIds.includes(q.id)
@@ -67,7 +73,7 @@ export async function POST(
       .update(responses)
       .set({
         status: 'completed',
-        completedAt: new Date(),
+        completedAt: Date.now() as any,
       })
       .where(eq(responses.id, params.id))
       .returning()
@@ -111,7 +117,7 @@ export async function POST(
             id: r.id,
             items: r.items.map((item: any) => ({
               questionId: item.questionId,
-              questionText: item.question.text,
+              questionText: item.question?.text || '',
               valueText: item.valueText || undefined,
               valueNum: item.valueNum || undefined,
               valueChoice: item.valueChoice || undefined,
@@ -127,11 +133,13 @@ export async function POST(
           await db
             .insert(insightsTable)
             .values({
+              id: crypto.randomUUID(),
               surveyId,
               title: insight.title,
               summary: insight.summary,
-              sentiment: insight.sentiment,
+              sentiment: insight.sentiment as any,
               evidenceJson: insight.evidence,
+              createdAt: Date.now() as any,
             })
         }
         console.log(`✅ Auto-analysis complete for survey ${surveyId}`)

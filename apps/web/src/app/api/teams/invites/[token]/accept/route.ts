@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { invitations, memberships } from '@kauri/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -10,7 +10,7 @@ export async function POST(
     { params }: { params: { token: string } }
 ) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await auth()
 
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Must be logged in to accept invitation' }, { status: 401 })
@@ -38,6 +38,8 @@ export async function POST(
 
         // Create membership
         await db.insert(memberships).values({
+            id: crypto.randomUUID(),
+            createdAt: Date.now() as any,
             tenantId: invitation.tenantId,
             userId: session.user.id,
             role: invitation.role,

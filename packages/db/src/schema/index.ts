@@ -1,240 +1,243 @@
-import { pgTable, text, uuid, timestamp, varchar, jsonb, integer, boolean, index, primaryKey } from 'drizzle-orm/pg-core'
+import { sqliteTable, text, integer, primaryKey, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
 
+// Helper for generating UUIDs manually in the app since SQLite doesn't have an auto-generating UUID function by default
+// We will simply type them as `text`
+
 // Users and Tenants (must come first for references)
-export const users = pgTable('user', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  emailVerified: timestamp('emailVerified'),
-  name: varchar('name', { length: 255 }),
+export const users = sqliteTable('user', {
+  id: text('id').primaryKey(), // App will generate UUIDs
+  email: text('email').notNull().unique(),
+  emailVerified: integer('emailVerified', { mode: 'timestamp' }),
+  name: text('name'),
   image: text('image'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(), // App will set Date.now()
 })
 
 // NextAuth adapter tables
-export const accounts = pgTable('account', {
-  userId: uuid('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: varchar('type', { length: 255 }).notNull(),
-  provider: varchar('provider', { length: 255 }).notNull(),
-  providerAccountId: varchar('providerAccountId', { length: 255 }).notNull(),
+export const accounts = sqliteTable('account', {
+  userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  provider: text('provider').notNull(),
+  providerAccountId: text('providerAccountId').notNull(),
   refresh_token: text('refresh_token'),
   access_token: text('access_token'),
   expires_at: integer('expires_at'),
-  token_type: varchar('token_type', { length: 255 }),
-  scope: varchar('scope', { length: 255 }),
+  token_type: text('token_type'),
+  scope: text('scope'),
   id_token: text('id_token'),
-  session_state: varchar('session_state', { length: 255 }),
+  session_state: text('session_state'),
 }, (table: any) => ({
   compoundKey: primaryKey({ columns: [table.provider, table.providerAccountId] }),
 }))
 
-export const sessions = pgTable('session', {
-  sessionToken: varchar('sessionToken', { length: 255 }).notNull().primaryKey(),
-  userId: uuid('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  expires: timestamp('expires').notNull(),
+export const sessions = sqliteTable('session', {
+  sessionToken: text('sessionToken').notNull().primaryKey(),
+  userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expires: integer('expires', { mode: 'timestamp' }).notNull(),
 })
 
-export const verificationTokens = pgTable('verificationToken', {
-  identifier: varchar('identifier', { length: 255 }).notNull(),
-  token: varchar('token', { length: 255 }).notNull(),
-  expires: timestamp('expires').notNull(),
+export const verificationTokens = sqliteTable('verificationToken', {
+  identifier: text('identifier').notNull(),
+  token: text('token').notNull(),
+  expires: integer('expires', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   compoundKey: primaryKey({ columns: [table.identifier, table.token] }),
 }))
 
-export const tenants = pgTable('tenants', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: varchar('name', { length: 255 }).notNull(),
-  slug: varchar('slug', { length: 255 }).notNull().unique(),
+export const tenants = sqliteTable('tenants', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
   // Business context for AI-powered reporting
-  industry: varchar('industry', { length: 255 }),
+  industry: text('industry'),
   website: text('website'),
   description: text('description'),
   logo: text('logo'), // URL or base64
-  primaryColor: varchar('primary_color', { length: 7 }).default('#667eea'), // Hex color
-  contextJson: jsonb('context_json'), // Additional scraped context
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  primaryColor: text('primary_color').default('#667eea'), // Hex color
+  contextJson: text('context_json', { mode: 'json' }), // Additional scraped context
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
 
-export const memberships = pgTable('memberships', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  role: varchar('role', { length: 50 }).notNull().default('viewer'), // owner, staff, viewer
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const memberships = sqliteTable('memberships', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role').notNull().default('viewer'), // owner, staff, viewer
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   tenantIdx: index('memberships_tenant_idx').on(table.tenantId),
   userIdx: index('memberships_user_idx').on(table.userId),
 }))
 
 // Surveys
-export const surveys = pgTable('surveys', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 255 }).notNull(),
-  title: varchar('title', { length: 255 }).notNull(), // Display title (same as name for now)
+export const surveys = sqliteTable('surveys', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  title: text('title').notNull(), // Display title (same as name for now)
   description: text('description'),
-  status: varchar('status', { length: 50 }).notNull().default('draft'), // draft, active, closed
-  type: varchar('type', { length: 100 }), // appointment_follow_up, pulse_check, post_emergency
+  status: text('status').notNull().default('draft'), // draft, active, closed
+  type: text('type'), // appointment_follow_up, pulse_check, post_emergency
   version: integer('version').notNull().default(1),
-  language: varchar('language', { length: 10 }).notNull().default('en'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  language: text('language').notNull().default('en'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   tenantCreatedIdx: index('surveys_tenant_created_idx').on(table.tenantId, table.createdAt),
 }))
 
-export const questions = pgTable('questions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
-  kind: varchar('kind', { length: 50 }).notNull(), // scale, text, choice
+export const questions = sqliteTable('questions', {
+  id: text('id').primaryKey(),
+  surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(), // scale, text, choice
   text: text('text').notNull(),
-  type: varchar('type', { length: 50 }).notNull().default('text'), // scale, text, choice (duplicate of kind for consistency)
-  required: boolean('required').notNull().default(true),
+  type: text('type').notNull().default('text'), // scale, text, choice (duplicate of kind for consistency)
+  required: integer('required', { mode: 'boolean' }).notNull().default(true),
   scaleMin: integer('scale_min'),
   scaleMax: integer('scale_max'),
-  scaleMinLabel: varchar('scale_min_label', { length: 100 }),
-  scaleMaxLabel: varchar('scale_max_label', { length: 100 }),
-  choices: jsonb('choices').$type<string[]>(),
-  choicesJson: jsonb('choices_json'), // Array of choice options (legacy)
+  scaleMinLabel: text('scale_min_label'),
+  scaleMaxLabel: text('scale_max_label'),
+  choices: text('choices', { mode: 'json' }), // string[]
+  choicesJson: text('choices_json', { mode: 'json' }), // Array of choice options (legacy)
   prefill: text('prefill'), // AI-suggested question context
-  logicJson: jsonb('logic_json'), // Branching logic: { rules: [{ condition: 'equals', value: 'X', goTo: 'uuid' }] }
+  logicJson: text('logic_json', { mode: 'json' }), // Branching logic: { rules: [{ condition: 'equals', value: 'X', goTo: 'uuid' }] }
   orderIndex: integer('order_index').notNull().default(0),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyIdx: index('questions_survey_idx').on(table.surveyId),
 }))
 
-export const questionRules = pgTable('question_rules', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
-  questionId: uuid('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
-  rulesJson: jsonb('rules_json').notNull(), // { trigger: {}, probe: '', action: '' }
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const questionRules = sqliteTable('question_rules', {
+  id: text('id').primaryKey(),
+  surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
+  questionId: text('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
+  rulesJson: text('rules_json', { mode: 'json' }).notNull(), // { trigger: {}, probe: '', action: '' }
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyQuestionIdx: index('question_rules_survey_question_idx').on(table.surveyId, table.questionId),
 }))
 
 // Profiles and Consents
-export const profiles = pgTable('profiles', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  email: varchar('email', { length: 255 }),
-  name: varchar('name', { length: 255 }),
-  consented: boolean('consented').default(false),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const profiles = sqliteTable('profiles', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  email: text('email'),
+  name: text('name'),
+  consented: integer('consented', { mode: 'boolean' }).default(false),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   tenantIdx: index('profiles_tenant_idx').on(table.tenantId),
 }))
 
-export const consents = pgTable('consents', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  profileId: uuid('profile_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-  surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
-  consentGiven: boolean('consent_given').notNull().default(false),
+export const consents = sqliteTable('consents', {
+  id: text('id').primaryKey(),
+  profileId: text('profile_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
+  consentGiven: integer('consent_given', { mode: 'boolean' }).notNull().default(false),
   consentText: text('consent_text'),
-  consentedAt: timestamp('consented_at').defaultNow().notNull(),
-  revokedAt: timestamp('revoked_at'),
+  consentedAt: integer('consented_at', { mode: 'timestamp' }).notNull(),
+  revokedAt: integer('revoked_at', { mode: 'timestamp' }),
 })
 
 // Responses
-export const responses = pgTable('responses', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
-  profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
-  status: varchar('status', { length: 50 }).notNull().default('in_progress'),
-  completedAt: timestamp('completed_at'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const responses = sqliteTable('responses', {
+  id: text('id').primaryKey(),
+  surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
+  profileId: text('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('in_progress'),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyCreatedIdx: index('responses_survey_created_idx').on(table.surveyId, table.createdAt),
 }))
 
-export const responseItems = pgTable('response_items', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  responseId: uuid('response_id').notNull().references(() => responses.id, { onDelete: 'cascade' }),
-  questionId: uuid('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
+export const responseItems = sqliteTable('response_items', {
+  id: text('id').primaryKey(),
+  responseId: text('response_id').notNull().references(() => responses.id, { onDelete: 'cascade' }),
+  questionId: text('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
   valueText: text('value_text'),
   valueNum: integer('value_num'),
   valueScale: integer('value_scale'),
-  valueChoice: varchar('value_choice', { length: 255 }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  valueChoice: text('value_choice'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   responseQuestionIdx: index('response_items_response_question_idx').on(table.responseId, table.questionId),
 }))
 
 // Insights
-export const insights = pgTable('insights', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
-  title: varchar('title', { length: 255 }).notNull(),
+export const insights = sqliteTable('insights', {
+  id: text('id').primaryKey(),
+  surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
   summary: text('summary').notNull(),
-  sentiment: varchar('sentiment', { length: 50 }), // positive, neutral, negative
-  evidenceJson: jsonb('evidence_json'), // Array of evidence snippets with response IDs
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  sentiment: text('sentiment'), // positive, neutral, negative
+  evidenceJson: text('evidence_json', { mode: 'json' }), // Array of evidence snippets with response IDs
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyCreatedIdx: index('insights_survey_created_idx').on(table.surveyId, table.createdAt),
 }))
 
 // Actions
-export const actions = pgTable('actions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
-  kind: varchar('kind', { length: 100 }).notNull(), // alert, follow_up, review
-  status: varchar('status', { length: 50 }).notNull().default('open'), // open, doing, done
-  title: varchar('title', { length: 255 }).notNull(),
-  payloadJson: jsonb('payload_json'), // Additional context
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const actions = sqliteTable('actions', {
+  id: text('id').primaryKey(),
+  surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(), // alert, follow_up, review
+  status: text('status').notNull().default('open'), // open, doing, done
+  title: text('title').notNull(),
+  payloadJson: text('payload_json', { mode: 'json' }), // Additional context
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyStatusIdx: index('actions_survey_status_idx').on(table.surveyId, table.status),
 }))
 
 // Sources
-export const sources = pgTable('sources', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  kind: varchar('kind', { length: 100 }).notNull(), // website, csv, manual
+export const sources = sqliteTable('sources', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(), // website, csv, manual
   locator: text('locator').notNull(), // URL or file reference
-  contentJson: jsonb('content_json'), // Parsed content
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  contentJson: text('content_json', { mode: 'json' }), // Parsed content
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   tenantIdx: index('sources_tenant_idx').on(table.tenantId),
 }))
 
-export const invitations = pgTable('invitations', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  email: varchar('email', { length: 255 }).notNull(),
-  role: varchar('role', { length: 50 }).notNull().default('viewer'),
-  token: varchar('token', { length: 255 }).notNull().unique(),
-  status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, accepted, expired
-  expiresAt: timestamp('expires_at').notNull(),
-  invitedBy: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const invitations = sqliteTable('invitations', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: text('role').notNull().default('viewer'),
+  token: text('token').notNull().unique(),
+  status: text('status').notNull().default('pending'), // pending, accepted, expired
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  invitedBy: text('invited_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   tenantIdx: index('invitations_tenant_idx').on(table.tenantId),
   emailIdx: index('invitations_email_idx').on(table.email),
 }))
 
 // Reports
-export const reports = pgTable('reports', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  surveyId: uuid('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
-  title: varchar('title', { length: 255 }).notNull(),
+export const reports = sqliteTable('reports', {
+  id: text('id').primaryKey(),
+  surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
   executiveSummary: text('executive_summary'),
-  sectionsJson: jsonb('sections_json'), // Array of report sections
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  sectionsJson: text('sections_json', { mode: 'json' }), // Array of report sections
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyIdx: index('reports_survey_idx').on(table.surveyId),
 }))
 
-export const reportSections = pgTable('report_sections', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  reportId: uuid('report_id').notNull().references(() => reports.id, { onDelete: 'cascade' }),
-  heading: varchar('heading', { length: 255 }).notNull(),
+export const reportSections = sqliteTable('report_sections', {
+  id: text('id').primaryKey(),
+  reportId: text('report_id').notNull().references(() => reports.id, { onDelete: 'cascade' }),
+  heading: text('heading').notNull(),
   body: text('body').notNull(),
-  metricsJson: jsonb('metrics_json'),
-  chartRefs: jsonb('chart_refs'), // References to chart specs
+  metricsJson: text('metrics_json', { mode: 'json' }),
+  chartRefs: text('chart_refs', { mode: 'json' }), // References to chart specs
   orderIndex: integer('order_index').notNull().default(0),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
 
 // Relations

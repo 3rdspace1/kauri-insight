@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
+
 import { db } from '@kauri/db/client'
 import { surveys, responses, insights as insightsTable } from '@kauri/db/schema'
 import { eq, count } from 'drizzle-orm'
 
 export async function GET() {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await auth()
 
         if (!session?.tenantId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

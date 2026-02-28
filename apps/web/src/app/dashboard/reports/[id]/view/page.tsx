@@ -12,7 +12,7 @@ export default async function ReportViewPage({ params }: { params: { id: string 
             },
             survey: true,
         },
-    })
+    }) as any
 
     if (!report) {
         notFound()

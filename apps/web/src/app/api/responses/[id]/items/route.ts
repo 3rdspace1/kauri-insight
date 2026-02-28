@@ -71,6 +71,8 @@ export async function POST(
     const [item] = await db
       .insert(responseItems)
       .values({
+        id: crypto.randomUUID(),
+        createdAt: Date.now() as any,
         responseId: params.id,
         questionId: validated.questionId,
         valueScale: validated.valueScale,
