@@ -1,3 +1,5 @@
+export const runtime = 'edge'
+
 import { auth } from '@/lib/auth'
 
 import { db } from '@kauri/db/client'

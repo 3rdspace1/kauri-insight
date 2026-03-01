@@ -1,3 +1,5 @@
+export const runtime = 'edge'
+
 import NextAuth from 'next-auth'
 import Nodemailer from 'next-auth/providers/nodemailer'
 import { DrizzleAdapter } from '@auth/drizzle-adapter'

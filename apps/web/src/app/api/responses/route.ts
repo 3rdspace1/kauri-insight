@@ -1,3 +1,5 @@
+export const runtime = 'edge'
+
 import { NextResponse } from 'next/server'
 import { db } from '@kauri/db/client'
 import { responses, profiles, consents, surveys } from '@kauri/db/schema'

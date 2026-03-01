@@ -1,3 +1,5 @@
+export const runtime = 'edge'
+
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, BarChart3, Brain, Zap } from 'lucide-react'

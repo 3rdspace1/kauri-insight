@@ -1,3 +1,5 @@
+export const runtime = 'edge'
+
 import { db } from '@kauri/db/client'
 import { reports } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
