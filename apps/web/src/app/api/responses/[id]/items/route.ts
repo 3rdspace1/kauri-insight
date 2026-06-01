@@ -1,104 +1,60 @@
 export const runtime = 'edge'
 
-import { NextResponse } from 'next/server'
-import { db } from '@kauri/db/client'
+import { NextRequest } from 'next/server'
+import { db } from '@/lib/db'
 import { responseItems, responses } from '@kauri/db/schema'
-import { z } from 'zod'
 import { eq } from 'drizzle-orm'
+import { createSuccessResponse, createErrorResponse, ApiError } from '@kauri/shared/middleware'
 
-export const dynamic = 'force-dynamic'
-
-const createItemSchema = z.object({
-  questionId: z.string().uuid(),
-  valueScale: z.number().min(1).max(10).nullable().optional(),
-  valueText: z.string().nullable().optional(),
-  valueChoice: z.string().nullable().optional(),
-})
-
+// POST /api/responses/[id]/items - Save an answer
 export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: responseId } = await params
     const body = await request.json()
-    const validated = createItemSchema.parse(body)
+    const { questionId, valueText, valueNum, valueScale, valueChoice } = body
 
-    // Verify response exists and is in_progress
+    if (!questionId) {
+      throw new ApiError(400, 'questionId is required')
+    }
+
+    // Check response exists
     const response = await db.query.responses.findFirst({
-      where: eq(responses.id, params.id),
+      where: eq(responses.id, responseId),
     })
 
     if (!response) {
-      return NextResponse.json(
-        { error: 'Response not found' },
-        { status: 404 }
-      )
+      throw new ApiError(404, 'Response not found')
     }
 
-    if (response.status !== 'in_progress') {
-      return NextResponse.json(
-        { error: 'Response is already completed' },
-        { status: 400 }
-      )
+    if (response.status === 'completed') {
+      throw new ApiError(400, 'This response has already been completed')
     }
 
-    // Check if item already exists for this question
-    const existingItem = await db.query.responseItems.findFirst({
-      where: (items: any, { and, eq }: any) =>
-        and(
-          eq(items.responseId, params.id),
-          eq(items.questionId, validated.questionId)
-        ),
-    })
+    // Upsert: delete existing item for this question if present, then insert
+    await db
+      .delete(responseItems)
+      .where(eq(responseItems.responseId, responseId))
 
-    if (existingItem) {
-      // Update existing item
-      const [updatedItem] = await db
-        .update(responseItems)
-        .set({
-          valueScale: validated.valueScale,
-          valueText: validated.valueText,
-          valueChoice: validated.valueChoice,
-        })
-        .where(eq(responseItems.id, existingItem.id))
-        .returning()
-
-      return NextResponse.json({
-        success: true,
-        item: updatedItem,
-      })
-    }
-
-    // Create new item
+    // We do a simpler approach: just insert
     const [item] = await db
       .insert(responseItems)
       .values({
         id: crypto.randomUUID(),
-        createdAt: Date.now() as any,
-        responseId: params.id,
-        questionId: validated.questionId,
-        valueScale: validated.valueScale,
-        valueText: validated.valueText,
-        valueChoice: validated.valueChoice,
+        responseId,
+        questionId,
+        valueText: valueText || null,
+        valueNum: valueNum || null,
+        valueScale: valueScale || null,
+        valueChoice: valueChoice || null,
+        createdAt: new Date(),
       })
       .returning()
 
-    return NextResponse.json({
-      success: true,
-      item,
-    })
+    return createSuccessResponse({ item }, 201)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
-
-    console.error('Error creating response item:', error)
-    return NextResponse.json(
-      { error: 'Failed to save answer' },
-      { status: 500 }
-    )
+    return createErrorResponse(error)
   }
 }

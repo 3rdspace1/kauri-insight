@@ -2,17 +2,14 @@ export const runtime = 'edge'
 
 import { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
-
-import { db } from '@kauri/db/client'
-import { surveys, responses, responseItems, questions, insights as insightsTable } from '@kauri/db/schema'
+import { db } from '@/lib/db'
+import { surveys, responses, insights as insightsTable } from '@kauri/db/schema'
 import { generateSurveyInsights } from '@kauri/ai/insights'
 import { createSuccessResponse, createErrorResponse, ApiError } from '@kauri/shared/middleware'
 import { eq } from 'drizzle-orm'
 import type { InsightPayload } from '@kauri/shared/types'
 
-export const dynamic = 'force-dynamic'
-
-// POST /api/insights/run?surveyId=xxx
+// POST /api/insights/run
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
@@ -21,8 +18,8 @@ export async function POST(request: NextRequest) {
       throw new ApiError(401, 'Unauthorised')
     }
 
-    const searchParams = request.nextUrl.searchParams
-    const surveyId = searchParams.get('surveyId')
+    const body = await request.json()
+    const surveyId = body.surveyId
 
     if (!surveyId) {
       throw new ApiError(400, 'surveyId is required')
@@ -83,7 +80,7 @@ export async function POST(request: NextRequest) {
           summary: insight.summary,
           sentiment: insight.sentiment as any,
           evidenceJson: insight.evidence,
-          createdAt: Date.now() as any,
+          createdAt: new Date(),
         })
         .returning()
 

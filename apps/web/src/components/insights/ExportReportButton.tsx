@@ -33,7 +33,7 @@ export function ExportReportButton({ surveyId, surveyName, insightCount }: Expor
       })
 
       if (!res.ok) throw new Error('Failed to generate report')
-      const { report } = await res.json()
+      const { report } = await res.json() as any
 
       // 2. Trigger PDF download
       toast({

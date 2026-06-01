@@ -1,5 +1,3 @@
-export const runtime = 'edge'
-
 'use client'
 
 import { useState } from 'react'
@@ -147,7 +145,7 @@ export default function NewSurveyPage() {
         throw new Error('Failed to create survey')
       }
 
-      const { data: survey } = await surveyRes.json()
+      const { data: survey } = await surveyRes.json() as any
 
       // Create questions
       for (const [index, question] of questions.entries()) {
@@ -295,7 +293,7 @@ export default function NewSurveyPage() {
                           method: 'POST',
                           body: JSON.stringify({ text: newQuestion.text, targetLanguage: language })
                         })
-                        const data = await res.json()
+                        const data = await res.json() as any
                         if (data.translatedText) {
                           setNewQuestion({ ...newQuestion, text: data.translatedText })
                         }

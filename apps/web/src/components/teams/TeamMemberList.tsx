@@ -37,7 +37,7 @@ export function TeamMemberList({ tenantId, currentUserRole }: { tenantId: string
             // In a real app, these would be separate API routes
             const res = await fetch(`/api/teams/members`)
             if (res.ok) {
-                const data = await res.json()
+                const data = await res.json() as any
                 setMembers(data.members || [])
                 setInvitations(data.invitations || [])
             }

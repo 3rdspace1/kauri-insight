@@ -3,7 +3,7 @@ export const runtime = 'edge'
 import { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 
-import { db } from '@kauri/db/client'
+import { db } from '@/lib/db'
 import { surveys } from '@kauri/db/schema'
 import { createSurveySchema } from '@kauri/shared/validators'
 import { createSuccessResponse, createErrorResponse, ApiError } from '@kauri/shared/middleware'
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       .insert(surveys)
       .values({
         id: crypto.randomUUID(),
-        createdAt: Date.now() as any,
+        createdAt: new Date(),
         tenantId: session.tenantId,
         name: validated.name,
         title: validated.name, // Use name as title for now

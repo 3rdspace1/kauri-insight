@@ -1,103 +1,58 @@
 export const runtime = 'edge'
 
-import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
-
-import { db } from '@kauri/db/client'
+import { db } from '@/lib/db'
 import { surveys, questions } from '@kauri/db/schema'
-import { eq, and } from 'drizzle-orm'
-import { z } from 'zod'
+import { eq } from 'drizzle-orm'
+import { createSuccessResponse, createErrorResponse, ApiError } from '@kauri/shared/middleware'
 
-export const dynamic = 'force-dynamic'
-
-const createQuestionSchema = z.object({
-  id: z.string().uuid().optional(),
-  kind: z.enum(['scale', 'text', 'choice', 'multi_select', 'rating']),
-  text: z.string().min(1, 'Question text is required'),
-  type: z.enum(['scale', 'text', 'choice', 'multi_select', 'rating']),
-  required: z.boolean().default(true),
-  scaleMin: z.number().int().optional(),
-  scaleMax: z.number().int().optional(),
-  scaleMinLabel: z.string().optional(),
-  scaleMaxLabel: z.string().optional(),
-  choices: z.array(z.string()).optional(),
-  logicJson: z.any().optional(),
-  orderIndex: z.number().int().default(0),
-})
-
+// POST /api/surveys/[id]/questions
 export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: surveyId } = await params
     const session = await auth()
 
     if (!session?.tenantId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new ApiError(401, 'Unauthorised')
     }
 
-    // Verify survey belongs to tenant
     const survey = await db.query.surveys.findFirst({
-      where: and(
-        eq(surveys.id, params.id),
-        eq(surveys.tenantId, session.tenantId)
-      ),
+      where: eq(surveys.id, surveyId),
     })
 
-    if (!survey) {
-      return NextResponse.json({ error: 'Survey not found' }, { status: 404 })
+    if (!survey || survey.tenantId !== session.tenantId) {
+      throw new ApiError(404, 'Survey not found')
     }
 
     const body = await request.json()
-    const validated = createQuestionSchema.parse(body)
 
-    // Get current max order index
-    const existingQuestions = await db.query.questions.findMany({
-      where: eq(questions.surveyId, params.id),
-      orderBy: (questions: any, { desc }: any) => [desc(questions.orderIndex)],
-    })
-
-    const nextOrderIndex = existingQuestions.length > 0
-      ? (existingQuestions[0].orderIndex || 0) + 1
-      : 0
-
-    // Create question
     const [question] = await db
       .insert(questions)
       .values({
-        id: validated.id || crypto.randomUUID(),
-        createdAt: Date.now() as any,
-        surveyId: params.id,
-        kind: validated.kind,
-        text: validated.text,
-        type: validated.type,
-        required: validated.required,
-        scaleMin: validated.scaleMin,
-        scaleMax: validated.scaleMax,
-        scaleMinLabel: validated.scaleMinLabel,
-        scaleMaxLabel: validated.scaleMaxLabel,
-        choices: validated.choices as any,
-        logicJson: validated.logicJson as any,
-        orderIndex: validated.orderIndex || nextOrderIndex,
+        id: body.id || crypto.randomUUID(),
+        surveyId,
+        kind: body.kind || body.type || 'text',
+        text: body.text,
+        type: body.type || body.kind || 'text',
+        required: body.required ?? true,
+        scaleMin: body.scaleMin || null,
+        scaleMax: body.scaleMax || null,
+        scaleMinLabel: body.scaleMinLabel || null,
+        scaleMaxLabel: body.scaleMaxLabel || null,
+        choices: body.choices || null,
+        choicesJson: body.choices || null,
+        logicJson: body.logicJson || null,
+        orderIndex: body.orderIndex || 0,
+        createdAt: new Date(),
       })
       .returning()
 
-    return NextResponse.json({
-      success: true,
-      question,
-    })
+    return createSuccessResponse(question, 201)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
-
-    console.error('Error creating question:', error)
-    return NextResponse.json(
-      { error: 'Failed to create question' },
-      { status: 500 }
-    )
+    return createErrorResponse(error)
   }
 }

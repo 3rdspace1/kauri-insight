@@ -22,7 +22,7 @@ export function KanbanBoard({ surveyId }: { surveyId: string }) {
     const fetchActions = async () => {
         try {
             const res = await fetch(`/api/surveys/${surveyId}/actions`)
-            const data = await res.json()
+            const data = await res.json() as any
             if (data.success) {
                 setActions(data.data)
             }

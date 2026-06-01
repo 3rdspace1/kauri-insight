@@ -2,7 +2,7 @@ export const runtime = 'edge'
 
 import { auth } from '@/lib/auth'
 
-import { db } from '@kauri/db/client'
+import { db } from '@/lib/db'
 import { surveys } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

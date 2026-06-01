@@ -3,7 +3,7 @@ export const runtime = 'edge'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
-import { db } from '@kauri/db/client'
+import { db } from '@/lib/db'
 import { tenants } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
 import { BusinessContextForm } from '@/components/settings/BusinessContextForm'

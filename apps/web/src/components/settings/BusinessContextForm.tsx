@@ -126,7 +126,7 @@ export function BusinessContextForm({ tenantId, initialData }: BusinessContextFo
         throw new Error('Failed to scrape website')
       }
 
-      const data = await response.json()
+      const data = await response.json() as any
 
       // Auto-fill fields with scraped data
       if (data.description && !form.getValues('description')) {

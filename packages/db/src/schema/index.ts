@@ -1,20 +1,16 @@
 import { sqliteTable, text, integer, primaryKey, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
 
-// Helper for generating UUIDs manually in the app since SQLite doesn't have an auto-generating UUID function by default
-// We will simply type them as `text`
-
-// Users and Tenants (must come first for references)
+// Users and Tenants
 export const users = sqliteTable('user', {
-  id: text('id').primaryKey(), // App will generate UUIDs
+  id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
   emailVerified: integer('emailVerified', { mode: 'timestamp' }),
   name: text('name'),
   image: text('image'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(), // App will set Date.now()
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
 
-// NextAuth adapter tables
 export const accounts = sqliteTable('account', {
   userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
   type: text('type').notNull(),
@@ -49,13 +45,12 @@ export const tenants = sqliteTable('tenants', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
-  // Business context for AI-powered reporting
   industry: text('industry'),
   website: text('website'),
   description: text('description'),
-  logo: text('logo'), // URL or base64
-  primaryColor: text('primary_color').default('#667eea'), // Hex color
-  contextJson: text('context_json', { mode: 'json' }), // Additional scraped context
+  logo: text('logo'),
+  primaryColor: text('primary_color').default('#667eea'),
+  contextJson: text('context_json', { mode: 'json' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
 
@@ -63,22 +58,21 @@ export const memberships = sqliteTable('memberships', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  role: text('role').notNull().default('viewer'), // owner, staff, viewer
+  role: text('role').notNull().default('viewer'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   tenantIdx: index('memberships_tenant_idx').on(table.tenantId),
   userIdx: index('memberships_user_idx').on(table.userId),
 }))
 
-// Surveys
 export const surveys = sqliteTable('surveys', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  title: text('title').notNull(), // Display title (same as name for now)
+  title: text('title').notNull(),
   description: text('description'),
-  status: text('status').notNull().default('draft'), // draft, active, closed
-  type: text('type'), // appointment_follow_up, pulse_check, post_emergency
+  status: text('status').notNull().default('draft'),
+  type: text('type'),
   version: integer('version').notNull().default(1),
   language: text('language').notNull().default('en'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
@@ -89,18 +83,18 @@ export const surveys = sqliteTable('surveys', {
 export const questions = sqliteTable('questions', {
   id: text('id').primaryKey(),
   surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
-  kind: text('kind').notNull(), // scale, text, choice
+  kind: text('kind').notNull(),
   text: text('text').notNull(),
-  type: text('type').notNull().default('text'), // scale, text, choice (duplicate of kind for consistency)
+  type: text('type').notNull().default('text'),
   required: integer('required', { mode: 'boolean' }).notNull().default(true),
   scaleMin: integer('scale_min'),
   scaleMax: integer('scale_max'),
   scaleMinLabel: text('scale_min_label'),
   scaleMaxLabel: text('scale_max_label'),
-  choices: text('choices', { mode: 'json' }), // string[]
-  choicesJson: text('choices_json', { mode: 'json' }), // Array of choice options (legacy)
-  prefill: text('prefill'), // AI-suggested question context
-  logicJson: text('logic_json', { mode: 'json' }), // Branching logic: { rules: [{ condition: 'equals', value: 'X', goTo: 'uuid' }] }
+  choices: text('choices', { mode: 'json' }),
+  choicesJson: text('choices_json', { mode: 'json' }),
+  prefill: text('prefill'),
+  logicJson: text('logic_json', { mode: 'json' }),
   orderIndex: integer('order_index').notNull().default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
@@ -111,13 +105,12 @@ export const questionRules = sqliteTable('question_rules', {
   id: text('id').primaryKey(),
   surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
   questionId: text('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
-  rulesJson: text('rules_json', { mode: 'json' }).notNull(), // { trigger: {}, probe: '', action: '' }
+  rulesJson: text('rules_json', { mode: 'json' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyQuestionIdx: index('question_rules_survey_question_idx').on(table.surveyId, table.questionId),
 }))
 
-// Profiles and Consents
 export const profiles = sqliteTable('profiles', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
@@ -139,7 +132,6 @@ export const consents = sqliteTable('consents', {
   revokedAt: integer('revoked_at', { mode: 'timestamp' }),
 })
 
-// Responses
 export const responses = sqliteTable('responses', {
   id: text('id').primaryKey(),
   surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
@@ -164,39 +156,36 @@ export const responseItems = sqliteTable('response_items', {
   responseQuestionIdx: index('response_items_response_question_idx').on(table.responseId, table.questionId),
 }))
 
-// Insights
 export const insights = sqliteTable('insights', {
   id: text('id').primaryKey(),
   surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   summary: text('summary').notNull(),
-  sentiment: text('sentiment'), // positive, neutral, negative
-  evidenceJson: text('evidence_json', { mode: 'json' }), // Array of evidence snippets with response IDs
+  sentiment: text('sentiment'),
+  evidenceJson: text('evidence_json', { mode: 'json' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyCreatedIdx: index('insights_survey_created_idx').on(table.surveyId, table.createdAt),
 }))
 
-// Actions
 export const actions = sqliteTable('actions', {
   id: text('id').primaryKey(),
   surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
-  kind: text('kind').notNull(), // alert, follow_up, review
-  status: text('status').notNull().default('open'), // open, doing, done
+  kind: text('kind').notNull(),
+  status: text('status').notNull().default('open'),
   title: text('title').notNull(),
-  payloadJson: text('payload_json', { mode: 'json' }), // Additional context
+  payloadJson: text('payload_json', { mode: 'json' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyStatusIdx: index('actions_survey_status_idx').on(table.surveyId, table.status),
 }))
 
-// Sources
 export const sources = sqliteTable('sources', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  kind: text('kind').notNull(), // website, csv, manual
-  locator: text('locator').notNull(), // URL or file reference
-  contentJson: text('content_json', { mode: 'json' }), // Parsed content
+  kind: text('kind').notNull(),
+  locator: text('locator').notNull(),
+  contentJson: text('content_json', { mode: 'json' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   tenantIdx: index('sources_tenant_idx').on(table.tenantId),
@@ -207,23 +196,19 @@ export const invitations = sqliteTable('invitations', {
   tenantId: text('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   email: text('email').notNull(),
   role: text('role').notNull().default('viewer'),
-  token: text('token').notNull().unique(),
-  status: text('status').notNull().default('pending'), // pending, accepted, expired
-  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-  invitedBy: text('invited_by').references(() => users.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('pending'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   tenantIdx: index('invitations_tenant_idx').on(table.tenantId),
   emailIdx: index('invitations_email_idx').on(table.email),
 }))
 
-// Reports
 export const reports = sqliteTable('reports', {
   id: text('id').primaryKey(),
   surveyId: text('survey_id').notNull().references(() => surveys.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   executiveSummary: text('executive_summary'),
-  sectionsJson: text('sections_json', { mode: 'json' }), // Array of report sections
+  sectionsJson: text('sections_json', { mode: 'json' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 }, (table: any) => ({
   surveyIdx: index('reports_survey_idx').on(table.surveyId),
@@ -235,7 +220,7 @@ export const reportSections = sqliteTable('report_sections', {
   heading: text('heading').notNull(),
   body: text('body').notNull(),
   metricsJson: text('metrics_json', { mode: 'json' }),
-  chartRefs: text('chart_refs', { mode: 'json' }), // References to chart specs
+  chartRefs: text('chart_refs', { mode: 'json' }),
   orderIndex: integer('order_index').notNull().default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
@@ -245,7 +230,7 @@ export const usersRelations = relations(users, ({ many }: any) => ({
   memberships: many(memberships),
 }))
 
-export const tenantsRelations = relations(tenants, ({ many, one }: any) => ({
+export const tenantsRelations = relations(tenants, ({ many }: any) => ({
   memberships: many(memberships),
   surveys: many(surveys),
   profiles: many(profiles),
@@ -368,9 +353,5 @@ export const invitationsRelations = relations(invitations, ({ one }: any) => ({
   tenant: one(tenants, {
     fields: [invitations.tenantId],
     references: [tenants.id],
-  }),
-  inviter: one(users, {
-    fields: [invitations.invitedBy],
-    references: [users.id],
   }),
 }))

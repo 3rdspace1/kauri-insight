@@ -1,151 +1,109 @@
 export const runtime = 'edge'
 
-import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { surveys, questions } from '@kauri/db/schema'
+import { eq } from 'drizzle-orm'
+import { createSuccessResponse, createErrorResponse, ApiError } from '@kauri/shared/middleware'
 
-import { db } from '@kauri/db/client'
-import { surveys } from '@kauri/db/schema'
-import { eq, and } from 'drizzle-orm'
-import { z } from 'zod'
-
-export const dynamic = 'force-dynamic'
-
-const updateSurveySchema = z.object({
-  name: z.string().min(1).optional(),
-  title: z.string().min(1).optional(),
-  description: z.string().optional(),
-  status: z.enum(['draft', 'active', 'closed']).optional(),
-  language: z.string().optional(),
-})
-
+// GET /api/surveys/[id]
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await auth()
 
     if (!session?.tenantId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new ApiError(401, 'Unauthorised')
     }
 
     const survey = await db.query.surveys.findFirst({
-      where: and(
-        eq(surveys.id, params.id),
-        eq(surveys.tenantId, session.tenantId)
-      ),
-      with: {
-        questions: {
-          orderBy: (questions: any, { asc }: any) => [asc(questions.orderIndex)],
-          with: {
-            rules: true,
-          },
-        },
-      },
-    }) as any
+      where: eq(surveys.id, id),
+      with: { questions: true },
+    })
 
-    if (!survey) {
-      return NextResponse.json({ error: 'Survey not found' }, { status: 404 })
+    if (!survey || survey.tenantId !== session.tenantId) {
+      throw new ApiError(404, 'Survey not found')
     }
 
-    return NextResponse.json(survey)
+    return createSuccessResponse(survey)
   } catch (error) {
-    console.error('Error fetching survey:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch survey' },
-      { status: 500 }
-    )
+    return createErrorResponse(error)
   }
 }
 
+// PATCH /api/surveys/[id]
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await auth()
 
     if (!session?.tenantId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new ApiError(401, 'Unauthorised')
+    }
+
+    const survey = await db.query.surveys.findFirst({
+      where: eq(surveys.id, id),
+    })
+
+    if (!survey || survey.tenantId !== session.tenantId) {
+      throw new ApiError(404, 'Survey not found')
     }
 
     const body = await request.json()
-    const validated = updateSurveySchema.parse(body)
+    const allowedFields: Record<string, any> = {}
+    if (body.status) allowedFields.status = body.status
+    if (body.name) allowedFields.name = body.name
+    if (body.description !== undefined) allowedFields.description = body.description
+    if (body.language) allowedFields.language = body.language
 
-    // Verify survey belongs to tenant
-    const existing = await db.query.surveys.findFirst({
-      where: and(
-        eq(surveys.id, params.id),
-        eq(surveys.tenantId, session.tenantId)
-      ),
-    })
-
-    if (!existing) {
-      return NextResponse.json({ error: 'Survey not found' }, { status: 404 })
+    if (Object.keys(allowedFields).length === 0) {
+      throw new ApiError(400, 'No valid fields to update')
     }
 
-    // Update survey
     const [updated] = await db
       .update(surveys)
-      .set(validated)
-      .where(eq(surveys.id, params.id))
+      .set(allowedFields)
+      .where(eq(surveys.id, id))
       .returning()
 
-    return NextResponse.json({
-      success: true,
-      survey: updated,
-    })
+    return createSuccessResponse(updated)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
-
-    console.error('Error updating survey:', error)
-    return NextResponse.json(
-      { error: 'Failed to update survey' },
-      { status: 500 }
-    )
+    return createErrorResponse(error)
   }
 }
 
+// DELETE /api/surveys/[id]
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await auth()
 
     if (!session?.tenantId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new ApiError(401, 'Unauthorised')
     }
 
-    // Verify survey belongs to tenant
-    const existing = await db.query.surveys.findFirst({
-      where: and(
-        eq(surveys.id, params.id),
-        eq(surveys.tenantId, session.tenantId)
-      ),
+    const survey = await db.query.surveys.findFirst({
+      where: eq(surveys.id, id),
     })
 
-    if (!existing) {
-      return NextResponse.json({ error: 'Survey not found' }, { status: 404 })
+    if (!survey || survey.tenantId !== session.tenantId) {
+      throw new ApiError(404, 'Survey not found')
     }
 
-    // Delete survey (cascading deletes will handle related records)
-    await db.delete(surveys).where(eq(surveys.id, params.id))
+    await db.delete(surveys).where(eq(surveys.id, id))
 
-    return NextResponse.json({
-      success: true,
-      message: 'Survey deleted successfully',
-    })
+    return createSuccessResponse({ deleted: true })
   } catch (error) {
-    console.error('Error deleting survey:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete survey' },
-      { status: 500 }
-    )
+    return createErrorResponse(error)
   }
 }

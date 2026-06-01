@@ -3,15 +3,16 @@ export const runtime = 'edge'
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 
-import { db } from '@kauri/db/client'
+import { db } from '@/lib/db'
 import { invitations, memberships } from '@kauri/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 export async function POST(
     request: Request,
-    { params }: { params: { token: string } }
+    { params }: { params: Promise<{ token: string }> }
 ) {
     try {
+        const { token } = await params
         const session = await auth()
 
         if (!session?.user?.id) {
@@ -21,7 +22,7 @@ export async function POST(
         // Find valid invitation
         const invitation = await db.query.invitations.findFirst({
             where: and(
-                eq(invitations.token, params.token),
+                eq(invitations.token, token),
                 eq(invitations.status, 'pending')
             ),
         })
@@ -41,7 +42,7 @@ export async function POST(
         // Create membership
         await db.insert(memberships).values({
             id: crypto.randomUUID(),
-            createdAt: Date.now() as any,
+            createdAt: new Date(),
             tenantId: invitation.tenantId,
             userId: session.user.id,
             role: invitation.role,

@@ -2,7 +2,7 @@ export const runtime = 'edge'
 
 import { auth } from '@/lib/auth'
 
-import { db } from '@kauri/db/client'
+import { db } from '@/lib/db'
 import { surveys, questions, responses, responseItems, insights as insightsTable } from '@kauri/db/schema'
 import { eq, count, desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
@@ -15,7 +15,8 @@ import { PublishSurveyButton } from '@/components/surveys/PublishSurveyButton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KanbanBoard } from '@/components/actions/KanbanBoard'
 
-export default async function SurveyDetailPage({ params }: { params: { id: string } }) {
+export default async function SurveyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const session = await auth()
 
   if (!session?.tenantId) {
@@ -23,7 +24,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
   }
 
   const survey = await db.query.surveys.findFirst({
-    where: eq(surveys.id, params.id),
+    where: eq(surveys.id, id),
     with: {
       questions: true,
     },
@@ -37,13 +38,13 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
   const responseCount = await db
     .select({ count: count() })
     .from(responses)
-    .where(eq(responses.surveyId, params.id))
+    .where(eq(responses.surveyId, id))
 
   const totalResponses = responseCount[0]?.count || 0
 
   // Get completion stats
   const allResponses = await db.query.responses.findMany({
-    where: eq(responses.surveyId, params.id),
+    where: eq(responses.surveyId, id),
     with: {
       items: true,
     },
@@ -59,7 +60,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
 
   // Get top insights
   const insights = await db.query.insights.findMany({
-    where: eq(insightsTable.surveyId, params.id),
+    where: eq(insightsTable.surveyId, id),
     limit: 3,
     orderBy: (insights: any, { desc }: any) => [desc(insights.createdAt)],
   })
@@ -84,14 +85,14 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
         </div>
         <div className="flex gap-2">
           {survey.status === 'draft' && (
-            <PublishSurveyButton surveyId={params.id} />
+            <PublishSurveyButton surveyId={id} />
           )}
-          <DeleteSurveyButton surveyId={params.id} surveyName={survey.name} />
+          <DeleteSurveyButton surveyId={id} surveyName={survey.name} />
           <Button variant="outline">
             <Share2 className="mr-2 h-4 w-4" />
             Share
           </Button>
-          <Link href={`/dashboard/surveys/${params.id}/insights`}>
+          <Link href={`/dashboard/surveys/${id}/insights`}>
             <Button>
               <BarChart3 className="mr-2 h-4 w-4" />
               View Insights
@@ -154,7 +155,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
               Key findings from {totalResponses} responses
             </CardDescription>
           </div>
-          <Link href={`/dashboard/surveys/${params.id}/insights`}>
+          <Link href={`/dashboard/surveys/${id}/insights`}>
             <Button variant="outline" size="sm">Full Analysis</Button>
           </Link>
         </CardHeader>
@@ -257,7 +258,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
             <CardContent>
               <div className="flex items-center gap-2">
                 <code className="flex-1 rounded bg-muted px-3 py-2 text-sm">
-                  {typeof window !== 'undefined' ? window.location.origin : ''}/runtime/{params.id}
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/runtime/{id}
                 </code>
                 <Button variant="outline" size="sm">
                   Copy
@@ -268,7 +269,7 @@ export default async function SurveyDetailPage({ params }: { params: { id: strin
         </TabsContent>
 
         <TabsContent value="actions" className="pt-4">
-          <KanbanBoard surveyId={params.id} />
+          <KanbanBoard surveyId={id} />
         </TabsContent>
       </Tabs>
     </div>

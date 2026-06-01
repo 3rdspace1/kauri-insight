@@ -1,13 +1,14 @@
 export const runtime = 'edge'
 
-import { db } from '@kauri/db/client'
+import { db } from '@/lib/db'
 import { reports } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 
-export default async function ReportViewPage({ params }: { params: { id: string } }) {
+export default async function ReportViewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
     const report = await db.query.reports.findFirst({
-        where: eq(reports.id, params.id),
+        where: eq(reports.id, id),
         with: {
             sections: {
                 orderBy: (sections: any, { asc }: any) => [asc(sections.orderIndex)],

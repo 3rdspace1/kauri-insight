@@ -69,7 +69,7 @@ class ModelslabProvider implements AIProvider {
       throw new Error(`Modelslab API error: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as any
     return data.choices?.[0]?.message?.content || ''
   }
 

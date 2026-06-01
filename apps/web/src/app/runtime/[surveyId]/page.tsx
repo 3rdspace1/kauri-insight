@@ -1,5 +1,3 @@
-export const runtime = 'edge'
-
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -62,10 +60,10 @@ export default function RuntimeSurveyPage() {
       try {
         const res = await fetch(`/api/runtime/${surveyId}`)
         if (!res.ok) {
-          const data = await res.json()
+          const data = await res.json() as any
           throw new Error(data.error || 'Failed to load survey')
         }
-        const data = await res.json()
+        const data = await res.json() as any
         setSurvey(data)
         setStage('consent')
       } catch (err) {
@@ -92,11 +90,11 @@ export default function RuntimeSurveyPage() {
       })
 
       if (!res.ok) {
-        const data = await res.json()
+        const data = await res.json() as any
         throw new Error(data.error || 'Failed to start survey')
       }
 
-      const data = await res.json()
+      const data = await res.json() as any
       setResponseId(data.response.id)
       setStage('questions')
     } catch (err) {
@@ -244,7 +242,7 @@ export default function RuntimeSurveyPage() {
       })
 
       if (!res.ok) {
-        const data = await res.json()
+        const data = await res.json() as any
         throw new Error(data.error || 'Failed to complete survey')
       }
 

@@ -1,69 +1,55 @@
 export const runtime = 'edge'
 
-import { NextResponse } from 'next/server'
-import { db } from '@kauri/db/client'
-import { surveys } from '@kauri/db/schema'
+import { NextRequest } from 'next/server'
+import { db } from '@/lib/db'
+import { surveys, questions } from '@kauri/db/schema'
 import { eq } from 'drizzle-orm'
+import { createSuccessResponse, createErrorResponse, ApiError } from '@kauri/shared/middleware'
 
-export const dynamic = 'force-dynamic'
-
+// GET /api/runtime/[surveyId] - Public endpoint for survey respondents
 export async function GET(
-  request: Request,
-  { params }: { params: { surveyId: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ surveyId: string }> }
 ) {
   try {
-    // Public endpoint - no auth required
+    const { surveyId } = await params
+
     const survey = await db.query.surveys.findFirst({
-      where: eq(surveys.id, params.surveyId),
+      where: eq(surveys.id, surveyId),
       with: {
         questions: {
           orderBy: (questions: any, { asc }: any) => [asc(questions.orderIndex)],
-          with: {
-            rules: true,
-          },
         },
       },
-    }) as any
+    })
 
     if (!survey) {
-      return NextResponse.json(
-        { error: 'Survey not found' },
-        { status: 404 }
-      )
+      throw new ApiError(404, 'Survey not found')
     }
 
-    // Only return active surveys
     if (survey.status !== 'active') {
-      return NextResponse.json(
-        { error: 'Survey is not currently active' },
-        { status: 403 }
-      )
+      throw new ApiError(400, 'This survey is not currently accepting responses')
     }
 
-    // Return survey configuration (no tenant info)
-    return NextResponse.json({
+    return createSuccessResponse({
       id: survey.id,
-      title: survey.title,
+      title: survey.title || survey.name,
       description: survey.description,
       questions: survey.questions.map((q: any) => ({
         id: q.id,
         text: q.text,
-        type: q.type,
+        type: q.type || q.kind,
         required: q.required,
         scaleMin: q.scaleMin,
         scaleMax: q.scaleMax,
         scaleMinLabel: q.scaleMinLabel,
         scaleMaxLabel: q.scaleMaxLabel,
-        choices: q.choices,
+        choices: q.choices || q.choicesJson,
         orderIndex: q.orderIndex,
-        rules: q.rules,
+        logicJson: q.logicJson,
       })),
     })
   } catch (error) {
-    console.error('Error fetching survey:', error)
-    return NextResponse.json(
-      { error: 'Failed to load survey' },
-      { status: 500 }
-    )
+    return createErrorResponse(error)
   }
 }

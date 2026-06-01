@@ -1,7 +1,7 @@
 import PptxGenJS from 'pptxgenjs'
 import type { Report } from '@kauri/shared/types'
 
-export async function generatePPTX(report: Report): Promise<Buffer> {
+export async function generatePPTX(report: Report): Promise<Uint8Array> {
   console.log('📊 Generating PowerPoint...')
 
   const prs = new PptxGenJS()
@@ -106,7 +106,6 @@ export async function generatePPTX(report: Report): Promise<Buffer> {
 
   console.log('✅ PowerPoint generated successfully')
 
-  // Return as buffer
   const buffer = (await prs.write({ outputType: 'arraybuffer' })) as ArrayBuffer
-  return Buffer.from(buffer)
+  return new Uint8Array(buffer)
 }

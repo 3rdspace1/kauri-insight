@@ -1,67 +1,68 @@
 export const runtime = 'edge'
 
-import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { surveys, responses, insights } from '@kauri/db/schema'
+import { eq, desc } from 'drizzle-orm'
+import { createSuccessResponse, createErrorResponse, ApiError } from '@kauri/shared/middleware'
 
-import { db } from '@kauri/db/client'
-import { responses, insights, actions, surveys } from '@kauri/db/schema'
-import { eq, desc, and } from 'drizzle-orm'
-
-export async function GET() {
-    try {
-        const session = await auth()
-
-        if (!session?.tenantId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        // Fetch latest responses, insights, and actions
-        const latestResponses = await db.query.responses.findMany({
-            limit: 3,
-            orderBy: [desc(responses.createdAt)],
-            with: { survey: true },
-        })
-
-        const latestInsights = await db.query.insights.findMany({
-            limit: 2,
-            orderBy: [desc(insights.createdAt)],
-            with: { survey: true },
-        })
-
-        const latestActions = await db.query.actions.findMany({
-            limit: 2,
-            orderBy: [desc(actions.createdAt)],
-            with: { survey: true },
-        })
-
-        // Transform into unified feed
-        const feed = [
-            ...latestResponses.map((r: any) => ({
-                id: `r-${r.id}`,
-                type: 'response' as const,
-                text: 'New response received',
-                timestamp: r.createdAt.toISOString(),
-                surveyName: r.survey.name,
-            })),
-            ...latestInsights.map((i: any) => ({
-                id: `i-${i.id}`,
-                type: 'insight' as const,
-                text: `New Insight: ${i.title}`,
-                timestamp: i.createdAt.toISOString(),
-                surveyName: i.survey.name,
-            })),
-            ...latestActions.map((a: any) => ({
-                id: `a-${a.id}`,
-                type: 'action' as const,
-                text: `Action Required: ${a.title}`,
-                timestamp: a.createdAt.toISOString(),
-                surveyName: a.survey.name,
-            })),
-        ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-
-        return NextResponse.json(feed.slice(0, 7))
-    } catch (error) {
-        console.error('Activity error:', error)
-        return NextResponse.json({ error: 'Failed' }, { status: 500 })
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session?.tenantId) {
+      throw new ApiError(401, 'Unauthorised')
     }
+
+    const tenantSurveys = await db.query.surveys.findMany({
+      where: eq(surveys.tenantId, session.tenantId),
+    })
+
+    const activities: any[] = []
+
+    for (const survey of tenantSurveys) {
+      // Recent responses
+      const recentResponses = await db.query.responses.findMany({
+        where: eq(responses.surveyId, survey.id),
+        orderBy: (responses: any, { desc }: any) => [desc(responses.createdAt)],
+        limit: 3,
+      })
+
+      for (const r of recentResponses) {
+        activities.push({
+          id: r.id,
+          type: 'response',
+          text: r.status === 'completed' ? 'New response completed' : 'Response started',
+          timestamp: r.createdAt,
+          surveyName: survey.name,
+        })
+      }
+
+      // Recent insights
+      const recentInsights = await db.query.insights.findMany({
+        where: eq(insights.surveyId, survey.id),
+        orderBy: (insights: any, { desc }: any) => [desc(insights.createdAt)],
+        limit: 2,
+      })
+
+      for (const i of recentInsights) {
+        activities.push({
+          id: i.id,
+          type: 'insight',
+          text: i.title,
+          timestamp: i.createdAt,
+          surveyName: survey.name,
+        })
+      }
+    }
+
+    // Sort by timestamp descending and take top 10
+    activities.sort(
+      (a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+
+    return createSuccessResponse(activities.slice(0, 10))
+  } catch (error) {
+    return createErrorResponse(error)
+  }
 }

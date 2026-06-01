@@ -1,42 +1,35 @@
-import { chromium } from 'playwright'
+import puppeteer from '@cloudflare/puppeteer'
+import { getRequestContext } from '@cloudflare/next-on-pages'
 
-export async function generatePDF(url: string): Promise<Buffer> {
-    let browser
-    try {
-        browser = await chromium.launch({
-            headless: true,
-        })
-        const context = await browser.newContext()
-        const page = await context.newPage()
+/**
+ * Generate a PDF from a URL using Cloudflare Browser Rendering.
+ * Requires the `browser` binding to be configured in wrangler.toml.
+ */
+export async function generatePDF(url: string): Promise<Uint8Array> {
+  const { env } = getRequestContext()
+  const browser = await puppeteer.launch((env as any).BROWSER)
 
-        // Auth bypass: In production, you'd use a temporary signed token
-        // For this demo, we'll assume the page is accessible via a secret URL or it's a public report view
-        await page.goto(url, { waitUntil: 'networkidle' })
+  try {
+    const page = await browser.newPage()
 
-        // Add some print-specific styles
-        await page.addStyleTag({
-            content: `
+    await page.goto(url, { waitUntil: 'networkidle0' })
+
+    await page.addStyleTag({
+      content: `
         @page { size: A4; margin: 20mm; }
         body { -webkit-print-color-adjust: exact; }
         .no-print { display: none !important; }
-      `
-        })
+      `,
+    })
 
-        const pdf = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: {
-                top: '20mm',
-                bottom: '20mm',
-                left: '20mm',
-                right: '20mm',
-            }
-        })
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '20mm', bottom: '20mm', left: '20mm', right: '20mm' },
+    })
 
-        return pdf
-    } finally {
-        if (browser) {
-            await browser.close()
-        }
-    }
+    return pdf
+  } finally {
+    await browser.close()
+  }
 }

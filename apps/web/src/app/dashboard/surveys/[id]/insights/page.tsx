@@ -2,7 +2,7 @@ export const runtime = 'edge'
 
 import { auth } from '@/lib/auth'
 
-import { db } from '@kauri/db/client'
+import { db } from '@/lib/db'
 import { surveys, insights as insightsTable, responses } from '@kauri/db/schema'
 import { eq, count } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
@@ -13,7 +13,8 @@ import Link from 'next/link'
 import { GenerateInsightsButton } from '@/components/insights/GenerateInsightsButton'
 import { ExportReportButton } from '@/components/insights/ExportReportButton'
 
-export default async function InsightsPage({ params }: { params: { id: string } }) {
+export default async function InsightsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const session = await auth()
 
   if (!session?.tenantId) {
@@ -21,7 +22,7 @@ export default async function InsightsPage({ params }: { params: { id: string } 
   }
 
   const survey = await db.query.surveys.findFirst({
-    where: eq(surveys.id, params.id),
+    where: eq(surveys.id, id),
   })
 
   if (!survey || survey.tenantId !== session.tenantId) {
@@ -30,7 +31,7 @@ export default async function InsightsPage({ params }: { params: { id: string } 
 
   // Get insights
   const insights = await db.query.insights.findMany({
-    where: eq(insightsTable.surveyId, params.id),
+    where: eq(insightsTable.surveyId, id),
     orderBy: (insights: any, { desc }: any) => [desc(insights.createdAt)],
   })
 
@@ -38,7 +39,7 @@ export default async function InsightsPage({ params }: { params: { id: string } 
   const responseCount = await db
     .select({ count: count() })
     .from(responses)
-    .where(eq(responses.surveyId, params.id))
+    .where(eq(responses.surveyId, id))
 
   const totalResponses = responseCount[0]?.count || 0
 
@@ -54,7 +55,7 @@ export default async function InsightsPage({ params }: { params: { id: string } 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href={`/dashboard/surveys/${params.id}`}>
+          <Link href={`/dashboard/surveys/${id}`}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Survey
@@ -67,11 +68,11 @@ export default async function InsightsPage({ params }: { params: { id: string } 
         </div>
         <div className="flex gap-2">
           <ExportReportButton
-            surveyId={params.id}
+            surveyId={id}
             surveyName={survey.name}
             insightCount={insights.length}
           />
-          <GenerateInsightsButton surveyId={params.id} />
+          <GenerateInsightsButton surveyId={id} />
         </div>
       </div>
 
@@ -147,7 +148,7 @@ export default async function InsightsPage({ params }: { params: { id: string } 
               You have {totalResponses} response{totalResponses !== 1 ? 's' : ''}. Click
               "Generate Insights" to analyse them with AI.
             </p>
-            <GenerateInsightsButton surveyId={params.id} />
+            <GenerateInsightsButton surveyId={id} />
           </CardContent>
         </Card>
       ) : (
